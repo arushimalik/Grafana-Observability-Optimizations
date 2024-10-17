@@ -1,0 +1,76 @@
+{
+  "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
+  "type": "app",
+  "name": "Skeleton",
+  "id": "hmcclinic-skeleton-app",
+  "backend": true,
+  "executable": "gpx_skeleton",
+  "info": {
+    "keywords": ["app"],
+    "description": "",
+    "author": {
+      "name": "Hmcclinic"
+    },
+    "logos": {
+      "small": "img/logo.svg",
+      "large": "img/logo.svg"
+    },
+    "screenshots": [],
+    "version": "1.0.0",
+    "updated": "2024-10-11"
+  },
+  "includes": [
+    {
+      "type": "page",
+      "name": "Page One",
+      "path": "/a/hmcclinic-skeleton-app/one",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": true
+    },
+    {
+      "type": "page",
+      "name": "Page Two",
+      "path": "/a/hmcclinic-skeleton-app/two",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
+    },
+    {
+      "type": "page",
+      "name": "Page Three",
+      "path": "/a/hmcclinic-skeleton-app/three",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
+    },
+    {
+      "type": "page",
+      "name": "Page Four",
+      "path": "/a/hmcclinic-skeleton-app/four",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
+    },
+    {
+      "type": "page",
+      "icon": "cog",
+      "name": "Configuration",
+      "path": "/plugins/hmcclinic-skeleton-app",
+      "role": "Admin",
+      "addToNav": true
+    }, 
+    {
+      "type": "page",
+      "name": "Unused Page",
+      "path": "/a/hmcclinic-skeleton-app/unused",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
+    }
+  ],
+  "dependencies": {
+    "grafanaDependency": ">=10.4.0",
+    "plugins": []
+  }
+}

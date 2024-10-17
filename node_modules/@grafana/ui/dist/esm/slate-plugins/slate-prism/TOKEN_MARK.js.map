@@ -1,0 +1,1 @@
+{"version":3,"file":"TOKEN_MARK.js","sources":["../../../../src/slate-plugins/slate-prism/TOKEN_MARK.ts"],"sourcesContent":["const TOKEN_MARK = 'prism-token';\n\nexport default TOKEN_MARK;\n"],"names":[],"mappings":"AAAA,MAAM,UAAa,GAAA;;;;"}

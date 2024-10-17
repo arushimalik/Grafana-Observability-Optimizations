@@ -1,0 +1,1 @@
+{"version":3,"file":"index.js","sourceRoot":"","sources":["../../../../src/transports/console/index.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC","sourcesContent":["export { ConsoleTransport } from './transport';\nexport type { ConsoleTransportOptions } from './types';\n"]}

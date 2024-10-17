@@ -1,0 +1,20 @@
+# This file automatically configures data sources for Grafana.
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#data-sources
+apiVersion: 1
+
+datasources:
+  - name: graphite-atwood
+    url: http://graphite-atwood
+    type: graphite
+    access: proxy
+    default: false
+  - name: graphite-sontag
+    url: http://graphite-sontag
+    type: graphite
+    access: proxy
+    default: false
+  - name: graphite-linde
+    url: http://graphite-linde
+    type: graphite
+    access: proxy
+    default: false

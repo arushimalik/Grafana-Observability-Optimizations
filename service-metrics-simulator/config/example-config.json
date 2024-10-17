@@ -1,0 +1,71 @@
+{
+  "microservices": [
+    {
+      "name": "frontend",
+      "metrics": {
+        "meters": [
+          {
+            "name": "page.views",
+            "low": 10,
+            "high": 100
+          },
+          {
+            "name": "page.clicks",
+            "low": 0,
+            "high": 10
+          }
+        ],
+        "timers": [
+          {
+            "name": "page.load-time",
+            "low": 1,
+            "high": 10
+          }
+        ]
+      }
+    },
+    {
+      "name": "api",
+      "metrics": {
+        "meters": [
+          {
+            "name": "http.success",
+            "low": 50,
+            "high": 200
+          },
+          {
+            "name": "http.failure",
+            "low": 0,
+            "high": 5
+          },
+          {
+            "name": "useless-metric",
+            "low": 0,
+            "high": 500
+          }
+        ],
+        "timers": [
+          {
+            "name": "response",
+            "low": 5,
+            "high": 20
+          }
+        ]
+      }
+    }
+  ],
+  "clouds": [
+    {
+      "name": "atwood",
+      "graphiteEndpoint": "graphite-atwood:2003"
+    },
+    {
+      "name": "sontag",
+      "graphiteEndpoint": "graphite-sontag:2003"
+    },
+    {
+      "name": "linde",
+      "graphiteEndpoint": "graphite-linde:2003"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"types.js","sourceRoot":"","sources":["../../../../src/transports/console/types.ts"],"names":[],"mappings":"","sourcesContent":["import type { LogLevel } from '@grafana/faro-core';\n\nexport interface ConsoleTransportOptions {\n  level?: LogLevel;\n}\n"]}

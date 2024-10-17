@@ -1,0 +1,1 @@
+{"version":3,"file":"constants.js","sources":["../../../src/types/constants.ts"],"sourcesContent":["export const GAUGE_DEFAULT_MINIMUM = 0;\nexport const GAUGE_DEFAULT_MAXIMUM = 100;\nexport const DEFAULT_SAML_NAME = 'SAML';\n"],"names":[],"mappings":"AAAO,MAAM,qBAAwB,GAAA,EAAA;AAC9B,MAAM,qBAAwB,GAAA,IAAA;AAC9B,MAAM,iBAAoB,GAAA;;;;"}

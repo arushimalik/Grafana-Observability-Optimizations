@@ -1,0 +1,46 @@
+var DataTransformerID = /* @__PURE__ */ ((DataTransformerID2) => {
+  DataTransformerID2["append"] = "append";
+  DataTransformerID2["reduce"] = "reduce";
+  DataTransformerID2["order"] = "order";
+  DataTransformerID2["organize"] = "organize";
+  DataTransformerID2["rename"] = "rename";
+  DataTransformerID2["calculateField"] = "calculateField";
+  DataTransformerID2["seriesToColumns"] = "seriesToColumns";
+  DataTransformerID2["seriesToRows"] = "seriesToRows";
+  DataTransformerID2["merge"] = "merge";
+  DataTransformerID2["concatenate"] = "concatenate";
+  DataTransformerID2["labelsToFields"] = "labelsToFields";
+  DataTransformerID2["filterFields"] = "filterFields";
+  DataTransformerID2["filterFieldsByName"] = "filterFieldsByName";
+  DataTransformerID2["filterFrames"] = "filterFrames";
+  DataTransformerID2["filterByRefId"] = "filterByRefId";
+  DataTransformerID2["renameByRegex"] = "renameByRegex";
+  DataTransformerID2["filterByValue"] = "filterByValue";
+  DataTransformerID2["noop"] = "noop";
+  DataTransformerID2["ensureColumns"] = "ensureColumns";
+  DataTransformerID2["groupBy"] = "groupBy";
+  DataTransformerID2["sortBy"] = "sortBy";
+  DataTransformerID2["histogram"] = "histogram";
+  DataTransformerID2["configFromData"] = "configFromData";
+  DataTransformerID2["rowsToFields"] = "rowsToFields";
+  DataTransformerID2["prepareTimeSeries"] = "prepareTimeSeries";
+  DataTransformerID2["convertFieldType"] = "convertFieldType";
+  DataTransformerID2["fieldLookup"] = "fieldLookup";
+  DataTransformerID2["heatmap"] = "heatmap";
+  DataTransformerID2["spatial"] = "spatial";
+  DataTransformerID2["joinByField"] = "joinByField";
+  DataTransformerID2["joinByLabels"] = "joinByLabels";
+  DataTransformerID2["extractFields"] = "extractFields";
+  DataTransformerID2["groupingToMatrix"] = "groupingToMatrix";
+  DataTransformerID2["limit"] = "limit";
+  DataTransformerID2["partitionByValues"] = "partitionByValues";
+  DataTransformerID2["timeSeriesTable"] = "timeSeriesTable";
+  DataTransformerID2["formatTime"] = "formatTime";
+  DataTransformerID2["formatString"] = "formatString";
+  DataTransformerID2["regression"] = "regression";
+  DataTransformerID2["groupToNestedTable"] = "groupToNestedTable";
+  return DataTransformerID2;
+})(DataTransformerID || {});
+
+export { DataTransformerID };
+//# sourceMappingURL=ids.js.map

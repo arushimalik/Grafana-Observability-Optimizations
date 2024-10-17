@@ -1,0 +1,69 @@
+services:
+  grafana:
+    user: root
+    container_name: 'hmcclinic-skeleton-app'
+
+    build:
+      context: ./.config
+      args:
+        grafana_image: ${GRAFANA_IMAGE:-grafana-enterprise}
+        grafana_version: ${GRAFANA_VERSION:-11.2.2}
+        development: ${DEVELOPMENT:-false}
+    ports:
+      - 3000:3000/tcp
+      - 2345:2345/tcp # delve
+    security_opt:
+      - 'apparmor:unconfined'
+      - 'seccomp:unconfined'
+    cap_add:
+      - SYS_PTRACE
+    volumes:
+      - ./dist:/var/lib/grafana/plugins/hmcclinic-skeleton-app
+      - ./provisioning:/etc/grafana/provisioning
+      - .:/root/hmcclinic-skeleton-app
+
+    environment:
+      NODE_ENV: development
+      GF_LOG_FILTERS: plugin.hmcclinic-skeleton-app:debug
+      GF_LOG_LEVEL: debug
+      GF_DATAPROXY_LOGGING: 1
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: hmcclinic-skeleton-app
+  graphite-atwood:
+    image: graphiteapp/graphite-statsd
+    # Since Docker containers can communicate over an internal network, you only
+    # need to uncomment these ports if you want to connect to Graphite from
+    # outside the network. Grafana can use URLs like `http://graphite-atwood`
+    # to connect to these Graphite instances.
+    #
+    # I've left the Graphite web UI open so that you can try running Graphite
+    # queries directly without going through Grafana. You will never _need_ to
+    # do this, but it could be helpful to understand the difference between
+    # Graphite and Grafana.
+    #
+    # For bonus points, try running `curl http://localhost:8080/metrics/index.json`
+    # to see all series names that Graphite currently stores!
+    # https://graphite.readthedocs.io/en/latest/metrics_api.html
+    ports:
+      - "9080:80"             # graphite web UI
+      # - "8003-8004:2003-2004" # carbon backend receiver
+      # - "8023-8024:2023-2024" # carbon backend aggregator
+      # - "8125:8125/udp"       # statsd
+      # - "8126:8126"           # statsd admin
+  graphite-sontag:
+    image: graphiteapp/graphite-statsd
+  graphite-linde:
+    image: graphiteapp/graphite-statsd
+
+  # service-metric-simulator is a Go application I wrote to emit mock Graphite
+  # metrics to multiple Graphite instances. It allows you to define mock
+  # microservices with sets of mock metrics.
+  service-metric-simulator:
+    # Using "build" instead of "image" tells Docker Compose that the Docker
+    # image must be built instead of pulled from Docker Hub. Running
+    # `docker compose up` will use ./service-metrics-simulator/Dockerfile to
+    # build the image.
+    build: ./service-metrics-simulator
+    environment:
+      SIMULATOR_CONFIG_PATH: "/etc/service-metrics-simulator/example-config.json"
+    volumes:
+      - "./service-metrics-simulator/config:/etc/service-metrics-simulator"
