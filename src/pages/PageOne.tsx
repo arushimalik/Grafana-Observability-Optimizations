@@ -35,10 +35,12 @@ function PageOne() {
   const [selectedService, setSelectedService] = useState<Option | null>(null);
   const [selectedDashboard, setSelectedDashboard] = useState<Option | null>(null);
   const [availableServices, setAvailableServices] = useState<Option[]>([]);
+  const [serviceMetrics, setServiceMetrics] = useState<Option[]>([]);
   const [availableDashboards, setAvailableDashboards] = useState<Option[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingDashboards, setLoadingDashboards] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
+  const [metricError, setMetricError] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [metricComparison, setMetricComparison] = useState<MetricComparison | null>(null);
 
@@ -47,6 +49,37 @@ function PageOne() {
     fetchAvailableDashboards();
   }, []);
 
+  // const fetchAvailableServices = async () => {
+  //   setLoadingServices(true);
+  //   setServiceError(null);
+  //   try {
+  //     const response = await fetch('http://localhost:9080/metrics/find?query=*'); // TODO: THIS SHOULD NOT BE HARDCODED. FIX THIS.
+  //     const services: ServiceResponse[] = await response.json();
+
+  //     // for service in services
+  //     // if is a leaf, add to list formattedServices
+  //     // otherwise, const response = await fetch('http://localhost:9080/metrics/find?query={service}.*');
+  //     // if response = empty, add service to formattedServices
+  //     // otherwise, add all json results to the end of services
+
+  //     const formattedServices = services.map((service) => ({
+  //       label: service.text,
+  //       value: service.text,
+  //     }));
+  //     setAvailableServices(formattedServices);
+  //   } catch (error) {
+  //     console.error('Error fetching services from Graphite:', error);
+  //     setServiceError('Failed to load services');
+  //   } finally {
+  //     setLoadingServices(false);
+  //   }
+  // };
+  
+  interface FormattedService {
+    label: string;
+    value: string;
+  }
+  
   const fetchAvailableServices = async () => {
     setLoadingServices(true);
     setServiceError(null);
@@ -66,6 +99,55 @@ function PageOne() {
     }
   };
 
+  // const fetchAvailableServices = async () => {
+  
+  //   setLoadingServices(true);
+  //   setServiceError(null);
+  
+  //   try {
+  //     const response = await fetch('http://localhost:9080/metrics/find?query=*');
+  //     const services: ServiceResponse[] = await response.json();
+  //     const formattedServices: FormattedService[] = [];
+  
+      // // Function to recursively fetch leaf metrics
+      // const fetchLeaves = async (service: ServiceResponse) => {
+      //   if (service.leaf) {
+      //     // If it's a leaf, add to formattedServices
+      //     formattedServices.push({
+      //       label: service.id,
+      //       value: service.id,
+      //     });
+      //   } else {
+      //     // Otherwise, fetch children
+      //     const childResponse = await fetch(`http://localhost:9080/metrics/find?query=${service.id}.*`);
+      //     const children: ServiceResponse[] = await childResponse.json();
+  
+      //     if (children.length === 0) {
+      //       // If there are no children, add the service itself
+      //       formattedServices.push({
+      //         label: service.id,
+      //         value: service.id,
+      //       });
+      //     } else {
+      //       // Otherwise, process children
+      //       await Promise.all(children.map(fetchLeaves));
+      //     }
+      //   }
+      // };
+  
+      // Process each service
+      // await Promise.all(services.map(fetchLeaves));
+  
+  //     setAvailableServices(formattedServices);
+  //   } catch (error) {
+  //     console.error('Error fetching services from Graphite:', error);
+  //     setServiceError('Failed to load services');
+  //   } finally {
+  //     setLoadingServices(false);
+  //   }
+  // };
+  
+
   const fetchAvailableDashboards = async () => {
     setLoadingDashboards(true);
     setDashboardError(null);
@@ -84,16 +166,86 @@ function PageOne() {
     }
   };
 
+  const getServiceMetrics = async () => {
+    if (!selectedService) {
+      return;
+    }
+
+    setLoadingServices(true);
+    setServiceError(null);
+  
+    try {
+      console.log(selectedService.value);
+      const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
+      const services: ServiceResponse[] = await response.json();
+      console.log(`services:`);
+      console.log(services);
+      const formattedServices: FormattedService[] = [];
+      
+  
+      // Function to recursively fetch leaf metrics
+      const fetchLeaves = async (service: ServiceResponse) => {
+        if (service.leaf) {
+          // If it's a leaf, add to formattedServices
+          formattedServices.push({
+            label: service.id,
+            value: service.id,
+          });
+        } else {
+          // Otherwise, fetch children
+          const childResponse = await fetch(`http://localhost:9080/metrics/find?query=${service.id}.*`);
+          const children: ServiceResponse[] = await childResponse.json();
+  
+          if (children.length === 0) {
+            // If there are no children, add the service itself
+            formattedServices.push({
+              label: service.id,
+              value: service.id,
+            });
+          } else {
+            // Otherwise, process children
+            await Promise.all(children.map(fetchLeaves));
+          }
+        }
+      };
+  
+      // Process each service
+      await Promise.all(services.map(fetchLeaves));
+
+      // const formattedMetrics = formattedServices.map((service) => (service.label));
+
+      console.log(formattedServices);
+
+      const formattedMetrics = formattedServices.map((service) => ({
+        label: service.label,
+        value: service.label,
+      }));
+            // setAvailableServices(formattedServices);
+
+      setServiceMetrics(formattedMetrics);
+      console.log(`serviceMetrics`);
+      console.log(serviceMetrics);
+    } catch (error) {
+      console.error(`Error fetching metrics for ${selectedService} from Graphite:`, error);
+      setMetricError('Failed to load metrics');
+    } finally {
+      setLoadingServices(false);
+    }
+  }
+
   const compareMetrics = async () => {
-    if (!selectedService || !selectedDashboard) {
+    if (!selectedService || !selectedDashboard || !serviceMetrics) {
       return;
     }
   
     try {
       // Fetch the metrics for the selected service
-      const serviceMetricsResponse = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
-      const serviceMetrics = await serviceMetricsResponse.json();
+      // const serviceMetricsResponse = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
+      // const serviceMetrics = await serviceMetricsResponse.json();
       const availableMetrics = serviceMetrics.map((metric: any) => metric.text);
+
+      console.log(availableMetrics);
+      console.log(serviceMetrics);
   
       // Fetch the selected dashboard data to get metrics
       const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
@@ -134,6 +286,7 @@ function PageOne() {
   // Trigger comparison when both service and dashboard are selected
   useEffect(() => {
     if (selectedService && selectedDashboard) {
+      getServiceMetrics();
       compareMetrics();
     }
   }, [selectedService, selectedDashboard]);
