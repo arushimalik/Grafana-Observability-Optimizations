@@ -1,1 +1,0 @@
-export { browserMeta } from './meta';
