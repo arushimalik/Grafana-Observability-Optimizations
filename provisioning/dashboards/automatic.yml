@@ -1,0 +1,12 @@
+# This file describes groups of dashboards to automatically create. The actual
+# dashboards are defined in the ./examples folder.
+# https://grafana.com/docs/grafana/latest/administration/provisioning/#dashboards
+apiVersion: 1
+
+providers:
+  - name: 'example dashboards'
+    type: file
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards/examples
+      foldersFromFilesStructure: true

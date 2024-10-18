@@ -1,0 +1,626 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 2,
+  "links": [],
+  "liveNow": false,
+  "panels": [
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "# Graphite Metrics\n\nAt its core, Graphite is a database of named collections of datapoints. To add a\ndatapoint to Graphite, you can send a plaintext message to port 2003 with the\nformat `<metric path> <metric value> <metric timestamp>`. Datapoints with the\nsame path are called a \"series.\" You can then retreive these datapoints by\nwriting a \"query\" which will return datapoints from one series (or multiple,\nwith wildcards) and optionally transform the data with \"functions.\" You can\nwrite these queries when editing Grafana panels, but Grafana is just sending\nthose queries to Graphite and displaying the resulting datapoints.\n\nFor example, the panel to the right uses the query\n`sumSeries(api.meter.http.*.count)`. Graphite identifies two series that match\nthat wildcarded string: `api.meter.http.success.count` and\n`api.meter.http.failure.count`. Graphite then applies the function `sumSeries`\nand adds the values at each timestamp. Grafana receives the datapoints from\nGraphite and draws a line graph.\n\nTo see an actual response from Graphite, try running\n`curl \"http://localhost:8080/render?target=sumSeries(api.meter.http.*.count)&from=-1min&format=json\"`.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "9.5.14",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "graphite",
+        "uid": "PA4EF5535CE764F2C"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "graphite",
+            "uid": "PA4EF5535CE764F2C"
+          },
+          "refId": "A",
+          "target": "sumSeries(api.meter.http.*.count)"
+        }
+      ],
+      "title": "Total API HTTP Requests",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 3,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "# Metric Types\n\nWorking with raw datapoints can be a little unwieldy. Graphite just stores data.\nIt makes no distinction whether a series represents an error rate or a latency\nmeasurement. At CrowdStrike, we define certain metric \"types\" that are easier to\nreason about when developing a service.\n\n- Counter - Holds an integer value that can be incremented or decremented.\n  Example usage: tracking count of in-flight requests\n- Gauge - Holds an integer value that can be set arbitrarily. Example usage:\n  tracking current CPU utilization\n- Histogram - Automatically computes and updates distribution statistics based\n  on supplied integer values. Example usage: tracking the distribution of sizes\n  for uploaded files\n- Meter - Counts events and computes per-second rates averaged over various time\n  intervals. Example usage: tracking API error rate\n- Timer - Records the duration of events and computes percentiles. Example\n  usage: tracking observed latency of database requests\n\nAt CrowdStrike, we include the metric type in the metric name, so even in this\nexample dashboard, you will see metrics like `api.meter.http.failure.one-minute` or\n`frontend.timer.page.load-time.50-percentile`. Other users of Graphite may have\ndifferent naming schemes, so if you are developing something that we want to\nmake open-source, you should not rely on these names. However, if you are\ndeveloping something specifically for CrowdStrike (for instance, a helper tool\nfor generating service dashboards), the names may come in handy.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "9.5.14",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "graphite",
+        "uid": "PA4EF5535CE764F2C"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 4,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "graphite",
+            "uid": "PA4EF5535CE764F2C"
+          },
+          "refCount": 0,
+          "refId": "A",
+          "target": "api.meter.http.failure.one-minute",
+          "textEditor": true
+        }
+      ],
+      "title": "Example of a Meter - API Failure Rate (per-second, averaged over a minute)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "graphite",
+        "uid": "PA4EF5535CE764F2C"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          },
+          "unit": "ns"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 6,
+        "y": 16
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "graphite",
+            "uid": "PA4EF5535CE764F2C"
+          },
+          "refId": "A",
+          "target": "frontend.timer.page.load-time.50-percentile",
+          "textEditor": true
+        }
+      ],
+      "title": "Example of a Timer - 50th Percentile of Frontend Page Load Duration",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "datasource",
+        "uid": "grafana"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 6,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "# Defining Metrics\n\nAt CrowdStrike, most of our service code uses the\n[go-metrics](https://github.com/rcrowley/go-metrics) library to create metrics.\nIn a service called \"frontend,\" we might define a meter with name `page.views`.\nThen, when our service detects that someone has viewed the frontend page, it\ncalls `.Mark(1)` on the metric.\n\nHowever, the metrics we see in Graphite have names like\n`frontend.meter.page.views.one-minute`. Where did those extra path elements come\nfrom? The library code (and some of our internal utility code) prefixed the\nmetric name `page.views` with the service name and the metric type. The library\ncode also generated multiple Graphite series for this single meter. There's a\nseries called `frontend.meter.page.views.count` that just tracks the number of\nmarked events, but also a series called `frontend.meter.page.views.one-minute`\nthat tracks the per-second rate of events averaged over a minute. This rate was\nautomatically calculated by the library code.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "9.5.14",
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "graphite",
+        "uid": "PA4EF5535CE764F2C"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Page View Count"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "graphite",
+            "uid": "PA4EF5535CE764F2C"
+          },
+          "refCount": 0,
+          "refId": "A",
+          "target": "alias(frontend.meter.page.views.one-minute, \"Page View Rate\")",
+          "textEditor": true
+        },
+        {
+          "datasource": {
+            "type": "graphite",
+            "uid": "PA4EF5535CE764F2C"
+          },
+          "hide": false,
+          "refCount": 0,
+          "refId": "B",
+          "target": "alias(frontend.meter.page.views.count, \"Page View Count\")",
+          "textEditor": true
+        }
+      ],
+      "title": "frontend.meter.page.views Rate and Count",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "graphite",
+        "uid": "PA4EF5535CE764F2C"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "id": 8,
+      "options": {
+        "code": {
+          "language": "plaintext",
+          "showLineNumbers": false,
+          "showMiniMap": false
+        },
+        "content": "# System-level Metrics\n\nDepending on the exact Graphite setup, you may see metrics tracking the health\nof Graphite itself, like `stats.timers.view.GET.upper`. You should ignore these\nmetrics. For example, if you happen to be working on a tool to identify Graphite\nmetrics that do not appear in any dashboards, you should not mark these\nsystem-level metrics as unused.",
+        "mode": "markdown"
+      },
+      "pluginVersion": "9.5.14",
+      "targets": [
+        {
+          "datasource": {
+            "type": "graphite",
+            "uid": "PA4EF5535CE764F2C"
+          },
+          "refId": "A",
+          "target": ""
+        }
+      ],
+      "type": "text"
+    },
+    {
+      "datasource": {
+        "type": "graphite",
+        "uid": "PA4EF5535CE764F2C"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "id": 9,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "graphite",
+            "uid": "PA4EF5535CE764F2C"
+          },
+          "refId": "A",
+          "target": "stats.timers.view.GET.upper",
+          "textEditor": true
+        }
+      ],
+      "title": "Example of a Graphite System Metric",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "1. Basic Metric Usage",
+  "uid": "e0f18a71-6373-428e-a0c1-5d431e47786a",
+  "version": 7,
+  "weekStart": ""
+}
