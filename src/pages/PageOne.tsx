@@ -6,6 +6,7 @@ import { prefixRoute } from '../utils/utils.routing';
 import { ROUTES } from '../constants';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
+import getServiceMetrics from 'GetServiceMetrics';
 
 type Option = {
   label: string;
@@ -91,7 +92,7 @@ function PageOne() {
     }
   };
 
-  const getServiceMetrics = async () => {
+  const getServiceMetrics2 = async () => {
     if (!selectedService) {
       return;
     }
@@ -203,7 +204,12 @@ function PageOne() {
   // Trigger comparison when both service and dashboard are selected
   useEffect(() => {
     if (selectedService && selectedDashboard) {
-      getServiceMetrics();
+      setLoadingServices(true);
+      setServiceError(null);
+      // const { nestedMetricsTree, formattedMetrics } = await getServiceMetrics(selectedService.value);
+      const [nestedMetricsTree, formattedMetrics] = await getServiceMetrics(selectedService.value);
+      setServiceMetrics();
+
       compareMetrics();
     }
   }, [selectedService, selectedDashboard]);
