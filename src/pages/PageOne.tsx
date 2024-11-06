@@ -202,16 +202,48 @@ function PageOne() {
   
 
   // Trigger comparison when both service and dashboard are selected
-  useEffect(() => {
-    if (selectedService && selectedDashboard) {
-      setLoadingServices(true);
-      setServiceError(null);
-      // const { nestedMetricsTree, formattedMetrics } = await getServiceMetrics(selectedService.value);
-      const [nestedMetricsTree, formattedMetrics] = await getServiceMetrics(selectedService.value);
-      setServiceMetrics();
+  // useEffect(() => {
+  //   if (selectedService && selectedDashboard) {
+  //     setLoadingServices(true);
+  //     setServiceError(null);
+  //     // const { nestedMetricsTree, formattedMetrics } = await getServiceMetrics(selectedService.value);
+  //     const [nestedMetricsTree, formattedMetrics] = await getServiceMetrics(selectedService.value);
+  //     setServiceMetrics();
 
-      compareMetrics();
-    }
+  //     compareMetrics();
+  //   }
+  // }, [selectedService, selectedDashboard]);
+
+  useEffect(() => {
+    (async () => {
+      if (selectedService && selectedDashboard) {
+        setLoadingServices(true);
+        setServiceError(null);
+  
+        try {
+          const metricsData = await getServiceMetrics(selectedService.value);
+          if (metricsData) {
+            const [nestedMetricsTree, formattedMetrics] = metricsData;
+  
+            // Set the flat list of metrics
+            setServiceMetrics(formattedMetrics);
+  
+            // Log or use nestedMetricsTree if needed
+            console.log(nestedMetricsTree);
+  
+            // Call compareMetrics after setting service metrics
+            compareMetrics();
+          } else {
+            setServiceError('Failed to load metrics');
+          }
+        } catch (error) {
+          console.error("Error fetching metrics:", error);
+          setServiceError('Failed to load metrics');
+        } finally {
+          setLoadingServices(false);
+        }
+      }
+    })();
   }, [selectedService, selectedDashboard]);
 
   return (
