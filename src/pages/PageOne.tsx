@@ -3,31 +3,10 @@ import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
 import { LinkButton, useStyles2, Select } from '@grafana/ui';
 import { prefixRoute } from '../utils/utils.routing';
-import { ROUTES } from '../constants';
+import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison } from '../constants';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
 import getServiceMetrics from 'GetServiceMetrics';
-
-type Option = {
-  label: string;
-  value: string;
-};
-
-type ServiceResponse = {
-  text: string;
-  [key: string]: any;
-};
-
-type DashboardResponse = {
-  title: string;
-  uid: string;
-  [key: string]: any;
-};
-
-type MetricComparison = {
-  usedMetrics: string[];
-  unusedMetrics: string[];
-};
 
 function PageOne() {
   const styles = useStyles2(getStyles);
@@ -41,7 +20,7 @@ function PageOne() {
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingDashboards, setLoadingDashboards] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
-  const [metricError, setMetricError] = useState<string | null>(null);
+  //const [metricError, setMetricError] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [metricComparison, setMetricComparison] = useState<MetricComparison | null>(null);
 
@@ -50,10 +29,10 @@ function PageOne() {
     fetchAvailableDashboards();
   }, []);
   
-  interface FormattedService {
-    label: string;
-    value: string;
-  }
+  // interface FormattedService {
+  //   label: string;
+  //   value: string;
+  // }
   
   const fetchAvailableServices = async () => {
     setLoadingServices(true);
@@ -92,66 +71,66 @@ function PageOne() {
     }
   };
 
-  const getServiceMetrics2 = async () => {
-    if (!selectedService) {
-      return;
-    }
+  // const getServiceMetrics2 = async () => {
+  //   if (!selectedService) {
+  //     return;
+  //   }
 
-    setLoadingServices(true);
-    setServiceError(null);
+  //   setLoadingServices(true);
+  //   setServiceError(null);
   
-    try {
-      console.log(selectedService.value);
-      const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
-      const services: ServiceResponse[] = await response.json();
-      console.log(`services:`);
-      console.log(services);
-      const formattedServices: FormattedService[] = [];
+  //   try {
+  //     console.log(selectedService.value);
+  //     const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
+  //     const services: ServiceResponse[] = await response.json();
+  //     console.log(`services:`);
+  //     console.log(services);
+  //     const formattedServices: FormattedService[] = [];
       
   
-      // Function to recursively fetch leaf metrics
-      const fetchLeaves = async (service: ServiceResponse) => {
-        if (service.leaf) {
-          // If it's a leaf, add to formattedServices
-          formattedServices.push({
-            label: service.id,
-            value: service.id,
-          });
-        } else {
-          // Otherwise, fetch children
-          const childResponse = await fetch(`http://localhost:9080/metrics/find?query=${service.id}.*`);
-          const children: ServiceResponse[] = await childResponse.json();
+  //     // Function to recursively fetch leaf metrics
+  //     const fetchLeaves = async (service: ServiceResponse) => {
+  //       if (service.leaf) {
+  //         // If it's a leaf, add to formattedServices
+  //         formattedServices.push({
+  //           label: service.id,
+  //           value: service.id,
+  //         });
+  //       } else {
+  //         // Otherwise, fetch children
+  //         const childResponse = await fetch(`http://localhost:9080/metrics/find?query=${service.id}.*`);
+  //         const children: ServiceResponse[] = await childResponse.json();
   
-          if (children.length === 0) {
-            // If there are no children, add the service itself
-            formattedServices.push({
-              label: service.id,
-              value: service.id,
-            });
-          } else {
-            // Otherwise, process children
-            await Promise.all(children.map(fetchLeaves));
-          }
-        }
-      };
+  //         if (children.length === 0) {
+  //           // If there are no children, add the service itself
+  //           formattedServices.push({
+  //             label: service.id,
+  //             value: service.id,
+  //           });
+  //         } else {
+  //           // Otherwise, process children
+  //           await Promise.all(children.map(fetchLeaves));
+  //         }
+  //       }
+  //     };
   
-      // Process each service
-      await Promise.all(services.map(fetchLeaves));
+  //     // Process each service
+  //     await Promise.all(services.map(fetchLeaves));
 
-      const formattedMetrics = formattedServices.map((service) => ({
-        label: service.label,
-        value: service.label,
-      }));
-            // setAvailableServices(formattedServices);
+  //     const formattedMetrics = formattedServices.map((service) => ({
+  //       label: service.label,
+  //       value: service.label,
+  //     }));
+  //           // setAvailableServices(formattedServices);
 
-      setServiceMetrics(formattedMetrics);
-    } catch (error) {
-      console.error(`Error fetching metrics for ${selectedService} from Graphite:`, error);
-      setMetricError('Failed to load metrics');
-    } finally {
-      setLoadingServices(false);
-    }
-  }
+  //     setServiceMetrics(formattedMetrics);
+  //   } catch (error) {
+  //     console.error(`Error fetching metrics for ${selectedService} from Graphite:`, error);
+  //     setMetricError('Failed to load metrics');
+  //   } finally {
+  //     setLoadingServices(false);
+  //   }
+  // }
 
   const compareMetrics = async () => {
     if (!selectedService || !selectedDashboard || !serviceMetrics) {
@@ -202,16 +181,47 @@ function PageOne() {
   
 
   // Trigger comparison when both service and dashboard are selected
-  useEffect(() => {
-    if (selectedService && selectedDashboard) {
-      setLoadingServices(true);
-      setServiceError(null);
-      // const { nestedMetricsTree, formattedMetrics } = await getServiceMetrics(selectedService.value);
-      const [nestedMetricsTree, formattedMetrics] = await getServiceMetrics(selectedService.value);
-      setServiceMetrics();
+  // useEffect(() => {
+  //   if (selectedService && selectedDashboard) {
+  //     setLoadingServices(true);
+  //     setServiceError(null);
+  //     // const { nestedMetricsTree, formattedMetrics } = await getServiceMetrics(selectedService.value);
+  //     const [nestedMetricsTree, formattedMetrics] = await getServiceMetrics(selectedService.value);
+  //     setServiceMetrics();
 
-      compareMetrics();
-    }
+  //     compareMetrics();
+  //   }
+  // }, [selectedService, selectedDashboard]);
+
+  useEffect(() => { (async () => {
+      if (selectedService && selectedDashboard) {
+        setLoadingServices(true);
+        setServiceError(null);
+  
+        try {
+          const metricsData = await getServiceMetrics(selectedService.value);
+          if (metricsData) {
+            const [nestedMetricsTree, formattedMetrics] = metricsData;
+  
+            // Set the flat list of metrics
+            setServiceMetrics(formattedMetrics);
+  
+            // Log or use nestedMetricsTree if needed
+            console.log(nestedMetricsTree);
+  
+            // Call compareMetrics after setting service metrics
+            compareMetrics();
+          } else {
+            setServiceError('Failed to load metrics');
+          }
+        } catch (error) {
+          console.error("Error fetching metrics:", error);
+          setServiceError('Failed to load metrics');
+        } finally {
+          setLoadingServices(false);
+        }
+      }
+    })();
   }, [selectedService, selectedDashboard]);
 
   return (
@@ -223,7 +233,8 @@ function PageOne() {
           <Select
             options={availableServices}
             value={selectedService}
-            onChange={setSelectedService}
+            //onChange={setSelectedService}
+            onChange={(value) => setSelectedService(value as Option)}
             placeholder="Select Service"
             isLoading={loadingServices}
           />
@@ -234,7 +245,8 @@ function PageOne() {
           <Select
             options={availableDashboards}
             value={selectedDashboard}
-            onChange={setSelectedDashboard}
+            //onChange={setSelectedDashboard}
+            onChange={(value) => setSelectedDashboard(value as Option)}
             placeholder="Select Dashboard"
             isLoading={loadingDashboards}
           />

@@ -1,23 +1,8 @@
-import React, { useState, useEffect } from 'react';
-
-type ServiceResponse = {
-  text: string;
-  [key: string]: any;
-};
-
-type MetricNode = {
-  name: string;
-  fullPath: string;
-  children: MetricNode[];
-  isLeaf: boolean;
-};
-
-type Option = {
-  label: string;
-  value: string;
-};
+import { useState } from 'react';
+import { Option, ServiceResponse, MetricNode } from './constants';
 
 const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]); // Nested tree structure for all metrics
+console.log(metricsTree); 
 
 
 // const getServiceMetrics = async () => {
@@ -29,7 +14,7 @@ async function getServiceMetrics(selectedService: string): Promise<[MetricNode[]
   
     try {
       // Fetch top-level metrics for the selected service
-      const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
+      const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.valueOf}.*`);
       const services: ServiceResponse[] = await response.json();
   
       const formattedMetrics: Option[] = []; // Flat list of leaf metrics
