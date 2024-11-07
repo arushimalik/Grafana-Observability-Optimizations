@@ -104,6 +104,7 @@ function PageOne() {
       const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
       const services: ServiceResponse[] = await response.json();
       console.log(`services:`);
+      console.log(`TEST LOG:`);
       console.log(services);
       const formattedServices: FormattedService[] = [];
       
@@ -144,67 +145,127 @@ function PageOne() {
             // setAvailableServices(formattedServices);
 
       setServiceMetrics(formattedMetrics);
+      console.log(formattedMetrics);
+
+      // ADDED COMPARE METRICS ~~~~~~~~
+      if (!selectedService || !selectedDashboard || !formattedMetrics) {
+        return;
+      }
+    
+      try {
+        // Fetch the metrics for the selected service
+        const availableMetrics = formattedMetrics.map((metric: any) => metric.label);
+  
+        console.log(availableMetrics);
+        console.log("Formatted Metrics new Compare code added here:");
+        console.log(formattedMetrics);
+    
+        // Fetch the selected dashboard data to get metrics
+        const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
+        const dashboardPanels = dashboard.dashboard.panels || [];
+    
+        let usedMetrics: string[] = [];
+        dashboardPanels.forEach((panel: any) => {
+          if (panel.targets && Array.isArray(panel.targets)) {
+            panel.targets.forEach((target: any) => {
+              if (target.target) {
+                const targetMetric = target.target;
+    
+                // Use regex to check if the target metric belongs to the selected service
+                const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}[^a-zA-Z0-9_]`);
+                if (serviceRegex.test(targetMetric)) {
+                  usedMetrics.push(targetMetric);  // Metric used in the dashboard panel
+                }
+              }
+            });
+          }
+        });
+    
+        // Compare available metrics with the used metrics
+        const unusedMetrics = availableMetrics.filter((metric) => !usedMetrics.includes(metric));
+    
+        // Set the comparison result
+        setMetricComparison({
+          usedMetrics,
+          unusedMetrics,
+        });
+      } catch (error) {
+        console.error('Error comparing metrics:', error);
+      }
+
+      // ENDED COMPARE METRICS ~~~~~~~~
+
+
     } catch (error) {
       console.error(`Error fetching metrics for ${selectedService} from Graphite:`, error);
       setMetricError('Failed to load metrics');
     } finally {
       setLoadingServices(false);
     }
+
   }
 
-  const compareMetrics = async () => {
-    if (!selectedService || !selectedDashboard || !serviceMetrics) {
-      return;
-    }
+  // const compareMetrics = async () => {
+  //   if (!selectedService || !selectedDashboard || !serviceMetrics) {
+  //     return;
+  //   }
   
-    try {
-      // Fetch the metrics for the selected service
-      const availableMetrics = serviceMetrics.map((metric: any) => metric.label);
+  //   try {
+  //     // Fetch the metrics for the selected service
+  //     const availableMetrics = serviceMetrics.map((metric: any) => metric.label);
 
-      console.log(availableMetrics);
-      console.log(serviceMetrics);
+  //     console.log(availableMetrics);
+  //     console.log("Service Metrics here:");
+  //     console.log(serviceMetrics);
   
-      // Fetch the selected dashboard data to get metrics
-      const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
-      const dashboardPanels = dashboard.dashboard.panels || [];
+  //     // Fetch the selected dashboard data to get metrics
+  //     const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
+  //     const dashboardPanels = dashboard.dashboard.panels || [];
   
-      let usedMetrics: string[] = [];
-      dashboardPanels.forEach((panel: any) => {
-        if (panel.targets && Array.isArray(panel.targets)) {
-          panel.targets.forEach((target: any) => {
-            if (target.target) {
-              const targetMetric = target.target;
+  //     let usedMetrics: string[] = [];
+  //     dashboardPanels.forEach((panel: any) => {
+  //       if (panel.targets && Array.isArray(panel.targets)) {
+  //         panel.targets.forEach((target: any) => {
+  //           if (target.target) {
+  //             const targetMetric = target.target;
   
-              // Use regex to check if the target metric belongs to the selected service
-              const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}[^a-zA-Z0-9_]`);
-              if (serviceRegex.test(targetMetric)) {
-                usedMetrics.push(targetMetric);  // Metric used in the dashboard panel
-              }
-            }
-          });
-        }
-      });
+  //             // Use regex to check if the target metric belongs to the selected service
+  //             const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}[^a-zA-Z0-9_]`);
+  //             if (serviceRegex.test(targetMetric)) {
+  //               usedMetrics.push(targetMetric);  // Metric used in the dashboard panel
+  //             }
+  //           }
+  //         });
+  //       }
+  //     });
   
-      // Compare available metrics with the used metrics
-      const unusedMetrics = availableMetrics.filter((metric) => !usedMetrics.includes(metric));
+  //     // Compare available metrics with the used metrics
+  //     const unusedMetrics = availableMetrics.filter((metric) => !usedMetrics.includes(metric));
   
-      // Set the comparison result
-      setMetricComparison({
-        usedMetrics,
-        unusedMetrics,
-      });
+  //     // Set the comparison result
+  //     setMetricComparison({
+  //       usedMetrics,
+  //       unusedMetrics,
+  //     });
   
-    } catch (error) {
-      console.error('Error comparing metrics:', error);
-    }
-  };
+  //   } catch (error) {
+  //     console.error('Error comparing metrics:', error);
+  //   }
+  // };
   
+  const callInOrder = async () => {
+    getServiceMetrics();
+    // while (serviceMetrics not updated){
+    //   donothing
+    // }
+    // await compareMetrics();
+  }
 
   // Trigger comparison when both service and dashboard are selected
   useEffect(() => {
     if (selectedService && selectedDashboard) {
-      getServiceMetrics();
-      compareMetrics();
+      console.log("yay");
+      callInOrder();
     }
   }, [selectedService, selectedDashboard]);
 
