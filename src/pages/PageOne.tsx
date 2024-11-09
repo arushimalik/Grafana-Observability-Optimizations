@@ -5,7 +5,7 @@ import { LinkButton, useStyles2, Select } from '@grafana/ui';
 import { prefixRoute } from '../utils/utils.routing';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
-import { getServiceMetrics } from 'GetServiceMetrics';
+import { getServiceMetrics } from 'getServiceMetrics';
 import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison } from '../constants';
 
 
@@ -13,7 +13,7 @@ function PageOne() {
   const styles = useStyles2(getStyles);
 
   // State for selected options and available options
-  const [selectedService, setSelectedService] = useState<string | null>(null);
+  const [selectedService, setSelectedService] = useState<Option | null>(null);
   const [selectedDashboard, setSelectedDashboard] = useState<Option | null>(null);
   const [availableServices, setAvailableServices] = useState<Option[]>([]);
   const [availableDashboards, setAvailableDashboards] = useState<Option[]>([]);
@@ -124,7 +124,7 @@ function PageOne() {
       if (selectedService && selectedDashboard) {
         try {
           // Fetch formatted metrics
-          const formattedMetrics = await getServiceMetrics(selectedService);
+          const formattedMetrics = await getServiceMetrics(selectedService.value);
           
           // Compare metrics
           console.log("FORMATTED METRICS");
