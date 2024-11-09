@@ -33,3 +33,42 @@ export type MetricNode = {
   children: MetricNode[];
   isLeaf: boolean;
 };
+
+
+export const suffixSet: Set<string> = new Set([
+  'count_ps',
+  '75-percentile',
+  'lower',
+  'mean',
+  '95-percentile',
+  '50-percentile',
+  '99-percentile',
+  '999-percentile',
+  'count',
+  'fifteen-minute',
+  'five-minute',
+  'max',
+  'mean',
+  'mean-rate',
+  'min',
+  'one-minute',  
+  'std-dev',
+  'avgUpdateTime',
+  'blacklistMatches',
+  'committedPoints',
+  'cpuUsage',
+  'creates',
+  'droppedCreates',
+  'errors',
+  'memUsage',
+  'metricsReceived',
+  'pointsPerUpdate',
+  'updateOperations',
+  'whitelistRejects',
+  'cache.bulk_queries',
+  'cache.overflow',
+  'cache.queries',
+  'cache.queues',
+  'cache.size',
+  'activeConnections'
+]);
