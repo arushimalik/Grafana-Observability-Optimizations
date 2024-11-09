@@ -13,7 +13,7 @@ function PageOne() {
   const styles = useStyles2(getStyles);
 
   // State for selected options and available options
-  const [selectedService, setSelectedService] = useState<Option | null>(null);
+  const [selectedService, setSelectedService] = useState<string | null>(null);
   const [selectedDashboard, setSelectedDashboard] = useState<Option | null>(null);
   const [availableServices, setAvailableServices] = useState<Option[]>([]);
   const [availableDashboards, setAvailableDashboards] = useState<Option[]>([]);
