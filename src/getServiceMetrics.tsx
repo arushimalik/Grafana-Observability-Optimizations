@@ -1,20 +1,24 @@
 import { Option, ServiceResponse } from './constants';
 
-export async function getServiceMetrics(selectedService: string): Promise<string[]> {
+export async function getServiceMetrics(selectedService: string): Promise<Option[]> {
   try {
+    console.log(selectedService);
     const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService}.*`);
     const services: ServiceResponse[] = await response.json();
     console.log(`services:`);
     console.log(`TEST LOG:`);
     console.log(services);
-    const formattedServices: string[] = [];
+    const formattedServices: Option[] = [];
     
 
     // Function to recursively fetch leaf metrics
     const fetchLeaves = async (service: ServiceResponse) => {
       if (service.leaf) {
         // If it's a leaf, add to formattedServices
-        formattedServices.push(service.id);
+        formattedServices.push({
+          label: service.id,
+          value: service.id,
+        });
       } else {
         // Otherwise, fetch children
         const childResponse = await fetch(`http://localhost:9080/metrics/find?query=${service.id}.*`);
