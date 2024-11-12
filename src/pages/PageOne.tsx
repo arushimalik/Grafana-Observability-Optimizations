@@ -120,7 +120,20 @@ function PageOne() {
       
   
       // Compare available metrics with the used metrics
-      const unusedMetrics = availableMetrics.filter((metric) => !usedMetrics.has(metric));
+      // const unusedMetrics = availableMetrics.filter((metric) => !usedMetrics.has(metric));
+
+      // all metric names are truncated before the suffix (count, mean, 50-percentile, etc). 
+      let unusedMetrics:Option[] = [];
+      for (const metric of usedMetrics) {
+        let regex:RegExp = new RegExp(metric);
+        let match:boolean = availableMetrics.some(metric => regex.test(metric))
+        if (match) {
+          
+        }
+        unusedMetrics.push(unused);
+      }
+      
+      
       const usedMetricsArray = Array.from(usedMetrics);
   
       // Set the comparison result
