@@ -22,6 +22,11 @@ function PageOne() {
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [metricComparison, setMetricComparison] = useState<MetricComparison | null>(null);
+  const [totalUsedCount, setTotalUsedCount] = useState(0);
+  const [totalUnusedCount, setTotalUnusedCount] = useState(0);
+
+
+
 
   useEffect(() => {
     fetchAvailableServices();
@@ -112,6 +117,7 @@ function PageOne() {
               const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}([^a-zA-Z0-9_]|$)`);
               if (serviceRegex.test(targetMetric)) {
                 usedMetrics.add(targetMetric);  // Add the metric without the function wrapper
+                console.log(usedMetrics);
               }
             }
           });
@@ -122,6 +128,9 @@ function PageOne() {
       // Compare available metrics with the used metrics
       const unusedMetrics = availableMetrics.filter((metric) => !usedMetrics.has(metric));
       const usedMetricsArray = Array.from(usedMetrics);
+
+      setTotalUsedCount(usedMetricsArray.length);
+      setTotalUnusedCount(unusedMetrics.length);
   
       // Set the comparison result
       setMetricComparison({
@@ -142,6 +151,8 @@ function PageOne() {
         try {
           // Fetch formatted metrics
           const formattedMetrics = await getServiceMetrics(selectedService.value);
+          console.log(formattedMetrics)
+          console.log(formattedMetrics.length)
 
           // Step 1: Process and format the metrics
           const processedMetrics = formatMetricsBySuffix(formattedMetrics);
@@ -228,7 +239,7 @@ function PageOne() {
           <div className={styles.marginTop}>
             <h4>Metric Comparison:</h4>
             <div>
-              <strong>Used Metrics:</strong>
+              <strong>Total Used Metrics:</strong> {totalUsedCount}
               <ul>
                 {metricComparison.usedMetrics.map((metric) => (
                   <li key={metric}>{metric}</li>
@@ -236,7 +247,7 @@ function PageOne() {
               </ul>
             </div>
             <div>
-              <strong>Unused Metrics:</strong>
+              <strong>Total Unused Metrics:</strong> {totalUnusedCount}
               <ul>
                 {metricComparison.unusedMetrics.map((metric) => (
                   <li key={metric}>{metric}</li>
