@@ -8,7 +8,6 @@ import { PluginPage, getBackendSrv } from '@grafana/runtime';
 import { getServiceMetrics } from 'getServiceMetrics';
 import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison, suffixSet } from '../constants';
 
-
 function PageOne() {
   const styles = useStyles2(getStyles);
 
@@ -29,7 +28,6 @@ function PageOne() {
   }, []);
   
 
-  
   const fetchAvailableServices = async () => {
     setLoadingServices(true);
     setServiceError(null);
@@ -68,7 +66,6 @@ function PageOne() {
   };
 
 
-  // const compareMetrics = async () => {
   async function compareMetrics(formattedMetrics: Option[]): Promise<void> {
     if (!selectedService || !selectedDashboard || !formattedMetrics) {
       return;
@@ -78,14 +75,12 @@ function PageOne() {
       // Fetch the metrics for the selected service
       const availableMetrics:Array<string> = formattedMetrics.map((metric: any) => metric.label);
 
-      console.log("Service Metrics here:");
-      console.log(formattedMetrics);
+      console.log("availableMetrics (in compareMetrics): ", availableMetrics);
   
       // Fetch the selected dashboard data to get metrics
       const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
       const dashboardPanels = dashboard.dashboard.panels || [];
   
-      // let usedMetrics: string[] = [];
       let usedMetricsSet: Set<Option> = new Set();
 
       dashboardPanels.forEach((panel: any) => {
@@ -105,7 +100,6 @@ function PageOne() {
               }
       
               // Use regex to check if the target metric belongs to the selected service
-      
               const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}([^a-zA-Z0-9_]|$)`);
               if (serviceRegex.test(targetMetric)) {
                 usedMetricsSet.add({label: targetMetric, value: targetMetric});  // Add the metric without the function wrapper
@@ -115,81 +109,54 @@ function PageOne() {
         }
       });
       
-  
       // Compare available metrics with the used metrics
       let usedMetricsArray = Array.from(usedMetricsSet);
-
-      usedMetricsArray = formatMetricsBySuffix(usedMetricsArray);
-
       let usedMetricsArrayString = new Array();
-
+      usedMetricsArray = formatMetricsBySuffix(usedMetricsArray);
       usedMetricsArray.forEach((metric) => {usedMetricsArrayString.push(metric.label)});
 
-      // let usedMetricsStrings: Array<string> = new Array();
-
-      let unusedMetrics:Array<string> = new Array();
-
-
-
+      let unusedMetrics:Set<string> = new Set();
       availableMetrics.forEach((availableMetric) => {
-        // take available metric. if it matches a metric in the used Metrics list, then remove it.
-        usedMetricsArray.forEach((usedMetric) => {
-          
-          let usedMetric_RegExp = new RegExp(`${usedMetric.label}`);
-          console.log(`regexp ${usedMetric_RegExp}`);
-          if (usedMetric_RegExp.test(availableMetric)){
-            // dont do anything
-            console.log(`MATCH ${usedMetric_RegExp} ${availableMetric}`);
+        if (!usedMetricsArray.some(metric => metric.label === availableMetric)) { // availableMetric is not in usedMetricsArray
+          unusedMetrics.add(availableMetric)
+        }
+      })
 
-          } else{
-            console.log(`unused : ${availableMetric}`);
-            unusedMetrics.push(availableMetric);
-          }
-        });
-      });
+      console.log("unusedMetrics:", unusedMetrics)
 
+      const unusedMetricsArray = Array.from(unusedMetrics);
 
-  
       // Set the comparison result
       setMetricComparison({
         usedMetrics: usedMetricsArrayString,
-        unusedMetrics,
+        unusedMetrics: unusedMetricsArray, // Convert Set to Array
       });
-  
     } catch (error) {
       console.error('Error comparing metrics:', error);
     }
   };
-    
+
+
   // Trigger comparison when both service and dashboard are selected
   useEffect(() => {
-    
     const fetchAndCompareMetrics = async () => {
       if (selectedService && selectedDashboard) {
         try {
-          // Fetch formatted metrics
-          const formattedMetrics = await getServiceMetrics(selectedService.value);
-
-          // Step 1: Process and format the metrics
-          const processedMetrics = formatMetricsBySuffix(formattedMetrics);
-
-          
-          // Compare metrics
-          await compareMetrics(processedMetrics);
+          const formattedMetrics = await getServiceMetrics(selectedService.value); // Fetch formatted metrics
+          const processedMetrics = formatMetricsBySuffix(formattedMetrics); //Process and format the metrics
+          await compareMetrics(processedMetrics); // Compare metrics
 
         } catch (error) {
           console.error('Error in fetching or comparing metrics:', error);
         }
       }
     };
-  
     fetchAndCompareMetrics();
   }, [selectedService, selectedDashboard]);
 
   const formatMetricsBySuffix = (metrics: Option[]): Option[] => {
     // Initialize map for prefix if not exists
     // maps each metric (minus the suffix) to a frequency map of suffix occurances
-    // const groupedMetrics = new Map<string, Map<string, number>>();
     const groupedMetrics = new Set<string>();
 
     // Step 1: Group metrics by prefix and count suffix occurrences
