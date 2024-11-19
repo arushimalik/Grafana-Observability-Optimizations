@@ -46,7 +46,7 @@ export async function getServiceMetrics(selectedService: string): Promise<Option
 
     // ADDED COMPARE METRICS ~~~~~~~~
     // compareMetrics(formattedMetrics);
-    console.log("change cool yay change1");
+    // console.log("change cool yay change1");
     return formattedMetrics;
 
 
