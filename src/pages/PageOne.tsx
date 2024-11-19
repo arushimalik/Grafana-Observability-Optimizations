@@ -76,9 +76,8 @@ function PageOne() {
   
     try {
       // Fetch the metrics for the selected service
-      const availableMetrics = formattedMetrics.map((metric: any) => metric.label);
+      const availableMetrics:Array<string> = formattedMetrics.map((metric: any) => metric.label);
 
-      console.log(availableMetrics);
       console.log("Service Metrics here:");
       console.log(formattedMetrics);
   
@@ -87,7 +86,7 @@ function PageOne() {
       const dashboardPanels = dashboard.dashboard.panels || [];
   
       // let usedMetrics: string[] = [];
-      let usedMetrics: Set<string> = new Set();
+      let usedMetricsSet: Set<Option> = new Set();
 
       dashboardPanels.forEach((panel: any) => {
         if (panel.targets && Array.isArray(panel.targets)) {
@@ -106,12 +105,10 @@ function PageOne() {
               }
       
               // Use regex to check if the target metric belongs to the selected service
-              console.log("Stripped target metric:");
-              console.log(targetMetric);
       
               const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}([^a-zA-Z0-9_]|$)`);
               if (serviceRegex.test(targetMetric)) {
-                usedMetrics.add(targetMetric);  // Add the metric without the function wrapper
+                usedMetricsSet.add({label: targetMetric, value: targetMetric});  // Add the metric without the function wrapper
               }
             }
           });
@@ -120,12 +117,42 @@ function PageOne() {
       
   
       // Compare available metrics with the used metrics
-      const unusedMetrics = availableMetrics.filter((metric) => !usedMetrics.has(metric));
-      const usedMetricsArray = Array.from(usedMetrics);
+      let usedMetricsArray = Array.from(usedMetricsSet);
+
+      usedMetricsArray = formatMetricsBySuffix(usedMetricsArray);
+
+      let usedMetricsArrayString = new Array();
+
+      usedMetricsArray.forEach((metric) => {usedMetricsArrayString.push(metric.label)});
+
+      // let usedMetricsStrings: Array<string> = new Array();
+
+      let unusedMetrics:Array<string> = new Array();
+
+
+
+      availableMetrics.forEach((availableMetric) => {
+        // take available metric. if it matches a metric in the used Metrics list, then remove it.
+        usedMetricsArray.forEach((usedMetric) => {
+          
+          let usedMetric_RegExp = new RegExp(`${usedMetric.label}`);
+          console.log(`regexp ${usedMetric_RegExp}`);
+          if (usedMetric_RegExp.test(availableMetric)){
+            // dont do anything
+            console.log(`MATCH ${usedMetric_RegExp} ${availableMetric}`);
+
+          } else{
+            console.log(`unused : ${availableMetric}`);
+            unusedMetrics.push(availableMetric);
+          }
+        });
+      });
+
+
   
       // Set the comparison result
       setMetricComparison({
-        usedMetrics: usedMetricsArray,
+        usedMetrics: usedMetricsArrayString,
         unusedMetrics,
       });
   
@@ -146,8 +173,6 @@ function PageOne() {
           // Step 1: Process and format the metrics
           const processedMetrics = formatMetricsBySuffix(formattedMetrics);
 
-          console.log("Processed Metrics:");
-          console.log(processedMetrics);
           
           // Compare metrics
           await compareMetrics(processedMetrics);
@@ -162,38 +187,40 @@ function PageOne() {
   }, [selectedService, selectedDashboard]);
 
   const formatMetricsBySuffix = (metrics: Option[]): Option[] => {
-    const groupedMetrics = new Map<string, Map<string, number>>();
+    // Initialize map for prefix if not exists
+    // maps each metric (minus the suffix) to a frequency map of suffix occurances
+    // const groupedMetrics = new Map<string, Map<string, number>>();
+    const groupedMetrics = new Set<string>();
 
-    // Step 2: Group metrics by prefix and count suffix occurrences
+    // Step 1: Group metrics by prefix and count suffix occurrences
     metrics.forEach((option) => {
       const label = option.label;
       for (let suffix of suffixSet) {
         if (label.endsWith(suffix)) {
           const prefix = label.slice(0, label.length - suffix.length);
 
-          // Initialize map for prefix if not exists
+          
           if (!groupedMetrics.has(prefix)) {
-            groupedMetrics.set(prefix, new Map());
+            groupedMetrics.add(prefix);
           }
 
-          const suffixCountMap = groupedMetrics.get(prefix)!;
-          const currentCount = suffixCountMap.get(suffix) || 0;
-          suffixCountMap.set(suffix, currentCount + 1);
+          // const suffixCountMap = groupedMetrics.get(prefix)!;
+          // const currentCount = suffixCountMap.get(suffix) || 0;
+          // suffixCountMap.set(suffix, currentCount + 1);
           break; // Only match one suffix
         }
       }
     });
 
-    // Step 3: Build new Option objects with formatted labels
+    // Step 2: Build new Option objects with formatted labels
     const formattedOptions: Option[] = [];
-    groupedMetrics.forEach((suffixCountMap, prefix) => {
-      let newLabel = prefix;
-      suffixCountMap.forEach((count, suffix) => {
-        newLabel += ` ${suffix}(${count})`;
-      });
-      formattedOptions.push({ label: prefix , value: newLabel});
+    groupedMetrics.forEach((prefix) => {
+      // let labelWithSuffixes = prefix;
+      // suffixCountMap.forEach((count, suffix) => {
+      //   labelWithSuffixes += ` ${suffix}(${count})`;
+      // });
+      formattedOptions.push({ label: prefix , value: prefix});
     });
-
     return formattedOptions;
   };
 
