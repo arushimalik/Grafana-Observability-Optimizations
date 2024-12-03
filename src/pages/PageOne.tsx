@@ -260,7 +260,7 @@ function PageOne() {
           onClick={toggleExpansion}
           style={{ cursor: 'pointer', fontWeight: children ? 'bold' : 'normal' }}
         >
-          {children ? (isExpanded ? <VscChevronRight /> : <VscChevronDown />) : <VscIndent />} {label}
+          {children ? (isExpanded ? <VscChevronDown /> : <VscChevronRight />) : <VscIndent />} {label}
         </div>
         {isExpanded && children && <div>{children}</div>}
       </div>
@@ -311,13 +311,12 @@ function PageOne() {
 
         {metricComparison && (
           <div className={styles.marginTop}>
-            <h4>Metric Comparison:</h4>
-            <div>
-              <strong>Used Metrics:</strong>
+
+            {/* <h4>Metric Comparison:</h4> */}
+            <div id="one">
+              <h4><strong>Used Metrics:</strong></h4>
+              <p>{metricComparison.usedMetrics.length} metrics</p>
               <ul>
-                {/* {metricComparison.usedMetrics.map((metric) => (
-                  <li key={metric}>{metric}</li>
-                ))} */}
                 {metricComparison.usedMetrics && metricComparison.usedMetrics.length > 0 ? (
                   <Tree data={formatAsTree(metricComparison.usedMetrics)} />
                 ) : (
@@ -325,12 +324,10 @@ function PageOne() {
                 )}
               </ul>
             </div>
-            <div>
-              <strong>Unused Metrics:</strong>
+            <div id="halfpage">
+              <h4><strong>Unused Metrics:</strong></h4>
+              <p>{metricComparison.unusedMetrics.length} metrics</p>
               <ul>
-                {/* {metricComparison.unusedMetrics.map((metric) => (
-                  <li key={metric}>{metric}</li>
-                ))} */}
                 {metricComparison.unusedMetrics && metricComparison.unusedMetrics.length > 0 ? (
                   <Tree data={formatAsTree(metricComparison.unusedMetrics)} />
                 ) : (
@@ -357,9 +354,16 @@ export default PageOne;
 const getStyles = (theme: GrafanaTheme2) => ({
   marginTop: css`
     margin-top: ${theme.spacing(2)};
+    align="center"
   `,
   error: css`
     color: ${theme.colors.error.text};
     margin-top: ${theme.spacing(1)};
   `,
+  one: css`
+    display: inline-block;
+    width: 400px;
+    height:300px;
+    border: 2px solid red;
+  `
 });
