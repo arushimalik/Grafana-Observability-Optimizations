@@ -8,6 +8,8 @@ import { PluginPage, getBackendSrv } from '@grafana/runtime';
 import { getServiceMetrics, printTree } from 'getServiceMetrics';
 import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison, suffixSet } from '../constants';
 
+import { VscChevronDown, VscChevronRight, VscIndent } from "react-icons/vsc";
+
 function PageOne() {
   const styles = useStyles2(getStyles);
 
@@ -244,7 +246,7 @@ function PageOne() {
   };
   
 
-  // Tree node Component for React
+  // Tree Node Component in React (for rendering expandable lists)
   const TreeNode = ({ label, children }: { label: string; children?: React.ReactNode }) => {
     const [isExpanded, setIsExpanded] = useState(false);
   
@@ -258,7 +260,7 @@ function PageOne() {
           onClick={toggleExpansion}
           style={{ cursor: 'pointer', fontWeight: children ? 'bold' : 'normal' }}
         >
-          {children ? (isExpanded ? '▼ ' : '► ') : '- '} {label}
+          {children ? (isExpanded ? <VscChevronRight /> : <VscChevronDown />) : <VscIndent />} {label}
         </div>
         {isExpanded && children && <div>{children}</div>}
       </div>
@@ -284,7 +286,6 @@ function PageOne() {
   return (
     <PluginPage>
       <div data-testid={testIds.pageOne.container}>
-        <h3>This is page one.</h3>
 
         <div className={styles.marginTop}>
           <Select
