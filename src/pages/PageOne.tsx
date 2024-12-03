@@ -75,7 +75,7 @@ function PageOne() {
       // Fetch the metrics for the selected service
       const availableMetrics:Array<string> = formattedMetrics.map((metric: any) => metric.label);
 
-      console.log("availableMetrics (in compareMetrics): ", availableMetrics);
+      
   
       // Fetch the selected dashboard data to get metrics
       const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
@@ -111,18 +111,23 @@ function PageOne() {
       
       // Compare available metrics with the used metrics
       let usedMetricsArray = Array.from(usedMetricsSet);
+      console.log(`Unused Metrics Array ${usedMetricsArray}`);
+
       let usedMetricsArrayString = new Array();
       usedMetricsArray = formatMetricsBySuffix(usedMetricsArray);
       usedMetricsArray.forEach((metric) => {usedMetricsArrayString.push(metric.label)});
 
+
+
       let unusedMetrics:Set<string> = new Set();
       availableMetrics.forEach((availableMetric) => {
-        if (!usedMetricsArray.some(metric => metric.label === availableMetric)) { // availableMetric is not in usedMetricsArray
+        if (usedMetricsArrayString.map(metric => dupeCheck(metric, availableMetric))) { // availableMetric is not in usedMetricsArray
           unusedMetrics.add(availableMetric)
+          console.log(`${availableMetric} is unused`);
         }
       })
 
-      console.log("unusedMetrics:", unusedMetrics)
+      
 
       const unusedMetricsArray = Array.from(unusedMetrics);
 
@@ -171,9 +176,6 @@ function PageOne() {
             groupedMetrics.add(prefix);
           }
 
-          // const suffixCountMap = groupedMetrics.get(prefix)!;
-          // const currentCount = suffixCountMap.get(suffix) || 0;
-          // suffixCountMap.set(suffix, currentCount + 1);
           break; // Only match one suffix
         }
       }
@@ -190,6 +192,33 @@ function PageOne() {
     });
     return formattedOptions;
   };
+
+  const dupeCheck = (metric1: String, metric2: String): boolean => {
+    // will return true if metric1 and metric2 match (metric1 is a duplicate)
+    
+    // let verify:boolean = false;
+    // check if the string literals match
+    if (metric1 === metric2) {
+      return true;
+    }
+
+    // check if they are regular expressions and match
+    try {
+      // Compile metric1 as a regex to match against metric2
+      const regex1 = new RegExp(`^${metric1}$`);
+      const regex2 = new RegExp(`^${metric2}$`);
+
+      // Use match to compare both directions
+      console.log(`regular expression matching result ${metric2.match(regex1) !== null && metric1.match(regex2) !== null}`);
+      return metric2.match(regex1) !== null && metric1.match(regex2) !== null;
+    } catch (error) {
+      // If there's an error compiling the regex, they aren't valid regex
+      console.log("ERROR with regex metric matching");
+      return false;
+    }
+
+    // return verify;
+  }
 
   return (
     <PluginPage>
