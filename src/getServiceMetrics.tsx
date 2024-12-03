@@ -3,11 +3,14 @@ import { Option, ServiceResponse } from './constants';
 export async function getServiceMetrics(selectedService: string): Promise<Option[]> {
   try {
     
+    console.log(`selectedService ${selectedService}`);
+
     const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService}.*`);
     const services: ServiceResponse[] = await response.json();
     
     const formattedServices: Option[] = [];
     
+    console.log(`services ${services}`);
 
     // Function to recursively fetch leaf metrics
     const fetchLeaves = async (service: ServiceResponse) => {
