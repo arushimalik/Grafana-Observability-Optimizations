@@ -2,12 +2,10 @@ import { Option, ServiceResponse } from './constants';
 
 export async function getServiceMetrics(selectedService: string): Promise<Option[]> {
   try {
-    console.log(selectedService);
+    
     const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService}.*`);
     const services: ServiceResponse[] = await response.json();
-    // console.log(`services:`);
-    // console.log(`TEST LOG:`);
-    console.log("services:", services);
+    
     const formattedServices: Option[] = [];
     
 
@@ -41,12 +39,12 @@ export async function getServiceMetrics(selectedService: string): Promise<Option
           // setAvailableServices(formattedServices);
 
     // setServiceMetrics(formattedMetrics);
-    console.log("formattedMetrics (in getServiceMetrics): ", formattedMetrics);
+    
     
 
     // ADDED COMPARE METRICS ~~~~~~~~
     // compareMetrics(formattedMetrics);
-    // console.log("change cool yay change1");
+    // 
     return formattedMetrics;
 
 
