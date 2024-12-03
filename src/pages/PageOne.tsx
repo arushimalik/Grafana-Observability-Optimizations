@@ -163,10 +163,10 @@ function PageOne() {
         try {
           const formattedMetrics = await getServiceMetrics(selectedService.label); // Fetch formatted metrics
           // Turn formattedMetrics into a list of strings instead of options
-          let formattedMetricsStrings:string[] = new Array();
-          formattedMetrics.forEach((option) => {formattedMetricsStrings.push(option.label)});
           
-          let processedMetrics = formatMetricsBySuffix(formattedMetricsStrings); //Process and format the metrics
+          
+          
+          let processedMetrics = formatMetricsBySuffix(formattedMetrics); //Process and format the metrics
           
           await compareMetrics(processedMetrics); // Compare metrics
 
