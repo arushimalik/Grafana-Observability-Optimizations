@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
-import { LinkButton, useStyles2, Select } from '@grafana/ui';
-import { prefixRoute } from '../utils/utils.routing';
+import {useStyles2, Select } from '@grafana/ui';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
 import { getServiceMetrics } from 'getServiceMetrics';
-import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison, suffixSet } from '../constants';
+import {Option, ServiceResponse, DashboardResponse, MetricComparison, suffixSet } from '../constants';
 
 function PageOne() {
   const styles = useStyles2(getStyles);
@@ -194,7 +193,6 @@ function PageOne() {
   return (
     <PluginPage>
       <div data-testid={testIds.pageOne.container}>
-        <h3>This is page one.</h3>
 
         <div className={styles.marginTop}>
           <Select
@@ -241,9 +239,7 @@ function PageOne() {
         )}
 
         <div className={styles.marginTop}>
-          <LinkButton data-testid={testIds.pageOne.navigateToFour} href={prefixRoute(ROUTES.Four)}>
-            Full-width page example
-          </LinkButton>
+
         </div>
       </div>
     </PluginPage>
