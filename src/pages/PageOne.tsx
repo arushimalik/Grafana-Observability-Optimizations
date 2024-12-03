@@ -5,7 +5,7 @@ import { LinkButton, useStyles2, Select } from '@grafana/ui';
 import { prefixRoute } from '../utils/utils.routing';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
-import { getServiceMetrics } from 'getServiceMetrics';
+import { getServiceMetrics, printTree } from 'getServiceMetrics';
 import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison, suffixSet } from '../constants';
 
 function PageOne() {
@@ -161,14 +161,13 @@ function PageOne() {
     const fetchAndCompareMetrics = async () => {
       if (selectedService && selectedDashboard) {
         try {
-          const formattedMetrics = await getServiceMetrics(selectedService.label); // Fetch formatted metrics
-          // Turn formattedMetrics into a list of strings instead of options
-          
-          
-          
-          let processedMetrics = formatMetricsBySuffix(formattedMetrics); //Process and format the metrics
-          
-          await compareMetrics(processedMetrics); // Compare metrics
+          const result = await getServiceMetrics(selectedService.label); // Fetch formatted metrics
+          const formattedMetrics = result.flatList;
+
+          const treeMetrics:Record<string, any> = result.tree
+          printTree(treeMetrics);
+
+          await compareMetrics(formattedMetrics); // Compare metrics
 
         } catch (error) {
           console.error('Error in fetching or comparing metrics:', error);
@@ -211,6 +210,8 @@ function PageOne() {
     });
     return formattedMetrics;
   };
+
+  
 
   return (
     <PluginPage>
