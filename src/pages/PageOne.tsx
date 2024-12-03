@@ -106,7 +106,6 @@ function PageOne() {
     let usedMetricsArray = Array.from(usedMetricsSet);
     usedMetricsArray = removeRedundantSuffixes(usedMetricsArray);
 
-    usedMetricsArray.forEach((metric:any) => {console.log(`usedMetric : ${metric.label}`)});
     console.log(`used Metrics Array ${usedMetricsArray}`);
     return usedMetricsArray;
   }
@@ -132,7 +131,7 @@ function PageOne() {
 
       let unusedMetrics:string[] = new Array();
 
-      // START
+      
       // Helper function to check if a metric matches any of the used metrics (with wildcard support)
       const matchesUsedMetric = (metric: string, usedMetrics: string[]): boolean => {
         return usedMetrics.some((usedMetric) => {
@@ -150,13 +149,10 @@ function PageOne() {
 
       // Recursive function to traverse the metric tree
       const traverseTree = (node: Record<string, any>, currentPath: string) => {
-        console.log(`currentpath ${currentPath}, ${node}`);
         for (const key in node) {
           const newPath = currentPath ? `${currentPath}.${key}` : key;
-          console.log(`currentpath ${newPath}`);
 
           if (node[key] === null) {
-            console.log(`leaf node ${newPath}`);
             // It's a leaf node
             if (!matchesUsedMetric(newPath, usedMetrics)) {
               unusedMetrics.push(newPath);
@@ -206,38 +202,82 @@ function PageOne() {
   }, [selectedService, selectedDashboard]);
 
   const removeRedundantSuffixes = (metrics: string[]): string[] => {
-    // Initialize map for prefix if not exists
-    // maps each metric (minus the suffix) to a frequency map of suffix occurances
+    // removes redundant suffixes from metric names
     const groupedMetrics = new Set<string>();
 
-    // Step 1: Group metrics by prefix and count suffix occurrences
-    metrics.forEach((str) => {
-      const label = str;
+    metrics.forEach((label) => {
       for (let suffix of suffixSet) {
         if (label.endsWith(suffix)) {
           const prefix = label.slice(0, label.length - suffix.length);
-
-          
           if (!groupedMetrics.has(prefix)) {
             groupedMetrics.add(prefix);
           }
-
           break; // Only match one suffix
         }
       }
     });
 
-    // Step 2: Build new Option objects with formatted labels
+    // Build new Option objects with formatted labels
     const formattedMetrics: string[] = [];
     groupedMetrics.forEach((prefix) => {
-      // let labelWithSuffixes = prefix;
-      // suffixCountMap.forEach((count, suffix) => {
-      //   labelWithSuffixes += ` ${suffix}(${count})`;
-      // });
       formattedMetrics.push(prefix);
     });
     return formattedMetrics;
   };
+  // take in a flat list of metrics and format them as a tree structure
+  const formatAsTree = (metrics: string[]): Record<string, any> => {
+    const tree: Record<string, any> = {};
+  
+    metrics.forEach((metric) => {
+      const parts = metric.split('.');
+      let currentLevel = tree;
+  
+      parts.forEach((part, index) => {
+        if (!currentLevel[part]) {
+          currentLevel[part] = index === parts.length - 1 ? null : {};
+        }
+        currentLevel = currentLevel[part];
+      });
+    });
+  
+    return tree;
+  };
+  
+
+  // Tree node Component for React
+  const TreeNode = ({ label, children }: { label: string; children?: React.ReactNode }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+  
+    const toggleExpansion = () => {
+      setIsExpanded(!isExpanded);
+    };
+  
+    return (
+      <div style={{ marginLeft: '20px' }}>
+        <div
+          onClick={toggleExpansion}
+          style={{ cursor: 'pointer', fontWeight: children ? 'bold' : 'normal' }}
+        >
+          {children ? (isExpanded ? '▼ ' : '► ') : '- '} {label}
+        </div>
+        {isExpanded && children && <div>{children}</div>}
+      </div>
+    );
+  };
+  const Tree = ({ data }: { data: Record<string, any> }) => {
+    const renderTree = (node: Record<string, any>): React.ReactNode => {
+      return Object.keys(node).map((key) => (
+        <TreeNode key={key} label={key}>
+          {node[key] !== null && typeof node[key] === 'object' ? renderTree(node[key]) : null}
+        </TreeNode>
+      ));
+    };
+  
+    return <div>{renderTree(data)}</div>;
+  };
+  
+  
+  
 
   
 
@@ -274,17 +314,27 @@ function PageOne() {
             <div>
               <strong>Used Metrics:</strong>
               <ul>
-                {metricComparison.usedMetrics.map((metric) => (
+                {/* {metricComparison.usedMetrics.map((metric) => (
                   <li key={metric}>{metric}</li>
-                ))}
+                ))} */}
+                {metricComparison.usedMetrics && metricComparison.usedMetrics.length > 0 ? (
+                  <Tree data={formatAsTree(metricComparison.usedMetrics)} />
+                ) : (
+                  <p>No used metrics.</p>
+                )}
               </ul>
             </div>
             <div>
               <strong>Unused Metrics:</strong>
               <ul>
-                {metricComparison.unusedMetrics.map((metric) => (
+                {/* {metricComparison.unusedMetrics.map((metric) => (
                   <li key={metric}>{metric}</li>
-                ))}
+                ))} */}
+                {metricComparison.unusedMetrics && metricComparison.unusedMetrics.length > 0 ? (
+                  <Tree data={formatAsTree(metricComparison.unusedMetrics)} />
+                ) : (
+                  <p>No unused metrics.</p>
+                )}
               </ul>
             </div>
           </div>
