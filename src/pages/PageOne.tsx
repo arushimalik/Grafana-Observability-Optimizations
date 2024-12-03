@@ -65,79 +65,93 @@ function PageOne() {
     }
   };
 
+  async function getUsedMetrics() {
+    if (!selectedService || !selectedDashboard ) {
+      console.error("Required selections or formatted metrics are missing.");
+      return;
+    }
+    // Fetch the selected dashboard data to get metrics
+    const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
+    const dashboardPanels = dashboard.dashboard.panels || [];
 
-  async function compareMetrics(formattedMetrics: Option[]): Promise<void> {
+    let usedMetricsSet: Set<string> = new Set();
+
+    dashboardPanels.forEach((panel: any) => {
+      if (panel.targets && Array.isArray(panel.targets)) {
+        panel.targets.forEach((target: any) => {
+          if (target.target) {
+            let targetMetric = target.target;
+    
+            // Regular expression to match any function at the start, followed by a metric name
+            const functionRegex = /^[a-zA-Z0-9_]+\((.*?)\)$/;
+    
+            // If the target metric starts with a function, remove it and retain the metric name
+            const match = targetMetric.match(functionRegex);
+            if (match) {
+              // Extract the part inside the parentheses (the actual metric name)
+              targetMetric = match[1];
+            }
+    
+            // Use regex to check if the target metric belongs to the selected service
+            const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}([^a-zA-Z0-9_]|$)`);
+            if (serviceRegex.test(targetMetric)) {
+              usedMetricsSet.add(targetMetric);  // Add the metric without the function wrapper
+            }
+          }
+        });
+      }
+    });
+    
+    // Compare available metrics with the used metrics
+    let usedMetricsArray = Array.from(usedMetricsSet);
+    usedMetricsArray = formatMetricsBySuffix(usedMetricsArray);
+
+    usedMetricsArray.forEach((metric:any) => {console.log(`usedMetric : ${metric.label}`)});
+    console.log(`Unused Metrics Array ${usedMetricsArray}`);
+    return usedMetricsArray;
+  }
+
+  async function compareMetrics(formattedMetrics: string[]): Promise<void> {
     if (!selectedService || !selectedDashboard || !formattedMetrics) {
+      console.error("Required selections or formatted metrics are missing.");
       return;
     }
   
     try {
-      // Fetch the metrics for the selected service
-      const availableMetrics:Array<string> = formattedMetrics.map((metric: any) => metric.label);
-
-      
+      // Fetch available metrics
+      const availableMetrics = formattedMetrics;
+      console.log("Available Metrics:", availableMetrics);
   
-      // Fetch the selected dashboard data to get metrics
-      const dashboard = await getBackendSrv().get(`/api/dashboards/uid/${selectedDashboard.value}`);
-      const dashboardPanels = dashboard.dashboard.panels || [];
+      // Fetch used metrics
+      let usedMetricsArray = await getUsedMetrics();
+      if (!usedMetricsArray) {
+        usedMetricsArray = [];
+      }
   
-      let usedMetricsSet: Set<Option> = new Set();
-
-      dashboardPanels.forEach((panel: any) => {
-        if (panel.targets && Array.isArray(panel.targets)) {
-          panel.targets.forEach((target: any) => {
-            if (target.target) {
-              let targetMetric = target.target;
-      
-              // Regular expression to match any function at the start, followed by a metric name
-              const functionRegex = /^[a-zA-Z0-9_]+\((.*?)\)$/;
-      
-              // If the target metric starts with a function, remove it and retain the metric name
-              const match = targetMetric.match(functionRegex);
-              if (match) {
-                // Extract the part inside the parentheses (the actual metric name)
-                targetMetric = match[1];
-              }
-      
-              // Use regex to check if the target metric belongs to the selected service
-              const serviceRegex = new RegExp(`(^|[^a-zA-Z0-9_])${selectedService.value}([^a-zA-Z0-9_]|$)`);
-              if (serviceRegex.test(targetMetric)) {
-                usedMetricsSet.add({label: targetMetric, value: targetMetric});  // Add the metric without the function wrapper
-              }
+      // Find unused metrics
+      const unusedMetrics = availableMetrics.filter(
+        (availableMetric) =>
+          !usedMetricsArray.some((usedMetric) => {
+            try {
+              // Check if the available metric matches the used metric as a regex
+              const regex = new RegExp(`^${usedMetric.replace(/\./g, '\\.')}$`);
+              return regex.test(availableMetric);
+            } catch (error) {
+              console.error("Invalid regex in used metric:", usedMetric, error);
+              return false;
             }
-          });
-        }
-      });
-      
-      // Compare available metrics with the used metrics
-      let usedMetricsArray = Array.from(usedMetricsSet);
-      console.log(`Unused Metrics Array ${usedMetricsArray}`);
-
-      let usedMetricsArrayString = new Array();
-      usedMetricsArray = formatMetricsBySuffix(usedMetricsArray);
-      usedMetricsArray.forEach((metric) => {usedMetricsArrayString.push(metric.label)});
-
-
-
-      let unusedMetrics:Set<string> = new Set();
-      availableMetrics.forEach((availableMetric) => {
-        if (usedMetricsArrayString.map(metric => dupeCheck(metric, availableMetric))) { // availableMetric is not in usedMetricsArray
-          unusedMetrics.add(availableMetric)
-          console.log(`${availableMetric} is unused`);
-        }
-      })
-
-      
-
-      const unusedMetricsArray = Array.from(unusedMetrics);
-
+          })
+      );
+  
+      console.log("Unused Metrics:", unusedMetrics);
+  
       // Set the comparison result
       setMetricComparison({
-        usedMetrics: usedMetricsArrayString,
-        unusedMetrics: unusedMetricsArray, // Convert Set to Array
+        usedMetrics: usedMetricsArray,
+        unusedMetrics: unusedMetrics,
       });
     } catch (error) {
-      console.error('Error comparing metrics:', error);
+      console.error("Error comparing metrics:", error);
     }
   };
 
@@ -147,8 +161,13 @@ function PageOne() {
     const fetchAndCompareMetrics = async () => {
       if (selectedService && selectedDashboard) {
         try {
-          const formattedMetrics = await getServiceMetrics(selectedService.value); // Fetch formatted metrics
-          const processedMetrics = formatMetricsBySuffix(formattedMetrics); //Process and format the metrics
+          const formattedMetrics = await getServiceMetrics(selectedService.label); // Fetch formatted metrics
+          // Turn formattedMetrics into a list of strings instead of options
+          let formattedMetricsStrings:string[] = new Array();
+          formattedMetrics.forEach((option) => {formattedMetricsStrings.push(option.label)});
+          
+          let processedMetrics = formatMetricsBySuffix(formattedMetricsStrings); //Process and format the metrics
+          
           await compareMetrics(processedMetrics); // Compare metrics
 
         } catch (error) {
@@ -159,14 +178,14 @@ function PageOne() {
     fetchAndCompareMetrics();
   }, [selectedService, selectedDashboard]);
 
-  const formatMetricsBySuffix = (metrics: Option[]): Option[] => {
+  const formatMetricsBySuffix = (metrics: string[]): string[] => {
     // Initialize map for prefix if not exists
     // maps each metric (minus the suffix) to a frequency map of suffix occurances
     const groupedMetrics = new Set<string>();
 
     // Step 1: Group metrics by prefix and count suffix occurrences
-    metrics.forEach((option) => {
-      const label = option.label;
+    metrics.forEach((str) => {
+      const label = str;
       for (let suffix of suffixSet) {
         if (label.endsWith(suffix)) {
           const prefix = label.slice(0, label.length - suffix.length);
@@ -182,43 +201,16 @@ function PageOne() {
     });
 
     // Step 2: Build new Option objects with formatted labels
-    const formattedOptions: Option[] = [];
+    const formattedMetrics: string[] = [];
     groupedMetrics.forEach((prefix) => {
       // let labelWithSuffixes = prefix;
       // suffixCountMap.forEach((count, suffix) => {
       //   labelWithSuffixes += ` ${suffix}(${count})`;
       // });
-      formattedOptions.push({ label: prefix , value: prefix});
+      formattedMetrics.push(prefix);
     });
-    return formattedOptions;
+    return formattedMetrics;
   };
-
-  const dupeCheck = (metric1: String, metric2: String): boolean => {
-    // will return true if metric1 and metric2 match (metric1 is a duplicate)
-    
-    // let verify:boolean = false;
-    // check if the string literals match
-    if (metric1 === metric2) {
-      return true;
-    }
-
-    // check if they are regular expressions and match
-    try {
-      // Compile metric1 as a regex to match against metric2
-      const regex1 = new RegExp(`^${metric1}$`);
-      const regex2 = new RegExp(`^${metric2}$`);
-
-      // Use match to compare both directions
-      console.log(`regular expression matching result ${metric2.match(regex1) !== null && metric1.match(regex2) !== null}`);
-      return metric2.match(regex1) !== null && metric1.match(regex2) !== null;
-    } catch (error) {
-      // If there's an error compiling the regex, they aren't valid regex
-      console.log("ERROR with regex metric matching");
-      return false;
-    }
-
-    // return verify;
-  }
 
   return (
     <PluginPage>
