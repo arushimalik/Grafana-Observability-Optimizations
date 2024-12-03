@@ -1,6 +1,6 @@
 import { Option, ServiceResponse } from './constants';
 
-export async function getServiceMetrics(selectedService: string): Promise<Option[]> {
+export async function getServiceMetrics(selectedService: string): Promise<string[]> {
   try {
     
     console.log(`selectedService ${selectedService}`);
@@ -39,6 +39,9 @@ export async function getServiceMetrics(selectedService: string): Promise<Option
     await Promise.all(services.map(fetchLeaves));
 
     const formattedMetrics = formattedServices;
+
+    let formattedMetricsStrings:string[] = new Array();
+    formattedMetrics.forEach((option) => {formattedMetricsStrings.push(option.label)});
           // setAvailableServices(formattedServices);
 
     // setServiceMetrics(formattedMetrics);
@@ -48,7 +51,7 @@ export async function getServiceMetrics(selectedService: string): Promise<Option
     // ADDED COMPARE METRICS ~~~~~~~~
     // compareMetrics(formattedMetrics);
     // 
-    return formattedMetrics;
+    return formattedMetricsStrings;
 
 
   } catch (error) {
