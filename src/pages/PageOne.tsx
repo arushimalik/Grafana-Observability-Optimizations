@@ -286,7 +286,6 @@ function PageOne() {
   return (
     <PluginPage>
       <div data-testid={testIds.pageOne.container}>
-
         <div className={styles.marginTop}>
           <Select
             options={availableServices}
@@ -310,10 +309,8 @@ function PageOne() {
         </div>
 
         {metricComparison && (
-          <div className={styles.marginTop}>
-
-            {/* <h4>Metric Comparison:</h4> */}
-            <div id="one">
+          <div className={`${styles.metricComparison} ${styles.responsive}`}>
+            <div className={styles.metricsColumn}>
               <h4><strong>Used Metrics:</strong></h4>
               <p>{metricComparison.usedMetrics.length} metrics</p>
               <ul>
@@ -324,7 +321,7 @@ function PageOne() {
                 )}
               </ul>
             </div>
-            <div id="halfpage">
+            <div className={styles.metricsColumn}>
               <h4><strong>Unused Metrics:</strong></h4>
               <p>{metricComparison.unusedMetrics.length} metrics</p>
               <ul>
@@ -338,11 +335,6 @@ function PageOne() {
           </div>
         )}
 
-        <div className={styles.marginTop}>
-          <LinkButton data-testid={testIds.pageOne.navigateToFour} href={prefixRoute(ROUTES.Four)}>
-            Full-width page example
-          </LinkButton>
-        </div>
       </div>
     </PluginPage>
   );
@@ -354,16 +346,26 @@ export default PageOne;
 const getStyles = (theme: GrafanaTheme2) => ({
   marginTop: css`
     margin-top: ${theme.spacing(2)};
-    align="center"
   `,
   error: css`
     color: ${theme.colors.error.text};
     margin-top: ${theme.spacing(1)};
   `,
-  one: css`
-    display: inline-block;
-    width: 400px;
-    height:300px;
-    border: 2px solid red;
-  `
+  metricComparison: css`
+    margin-top: ${theme.spacing(1)};
+    display: flex;
+    gap: ${theme.spacing(4)};
+    align-items: flex-start;
+    justify-content: space-between;
+  `,
+  metricsColumn: css`
+    margin-top: ${theme.spacing(1)};
+    flex: 1;
+    min-width: 200px;
+  `,
+  responsive: css`
+    @media (max-width: 768px) {
+      flex-direction: column;
+    }
+  `,
 });
