@@ -104,14 +104,14 @@ function PageOne() {
     
     // Compare available metrics with the used metrics
     let usedMetricsArray = Array.from(usedMetricsSet);
-    usedMetricsArray = formatMetricsBySuffix(usedMetricsArray);
+    usedMetricsArray = removeRedundantSuffixes(usedMetricsArray);
 
     usedMetricsArray.forEach((metric:any) => {console.log(`usedMetric : ${metric.label}`)});
-    console.log(`Unused Metrics Array ${usedMetricsArray}`);
+    console.log(`used Metrics Array ${usedMetricsArray}`);
     return usedMetricsArray;
   }
 
-  async function compareMetrics(formattedMetrics: string[]): Promise<void> {
+  async function compareMetrics(formattedMetrics: string[], metricTree: Record<string, any>): Promise<void> {
     if (!selectedService || !selectedDashboard || !formattedMetrics) {
       console.error("Required selections or formatted metrics are missing.");
       return;
@@ -123,31 +123,59 @@ function PageOne() {
       console.log("Available Metrics:", availableMetrics);
   
       // Fetch used metrics
-      let usedMetricsArray = await getUsedMetrics();
-      if (!usedMetricsArray) {
-        usedMetricsArray = [];
+      let usedMetrics = await getUsedMetrics();
+      if (!usedMetrics) {
+        usedMetrics = [];
       }
-  
-      // Find unused metrics
-      const unusedMetrics = availableMetrics.filter(
-        (availableMetric) =>
-          !usedMetricsArray.some((usedMetric) => {
-            try {
-              // Check if the available metric matches the used metric as a regex
-              const regex = new RegExp(`^${usedMetric.replace(/\./g, '\\.')}$`);
-              return regex.test(availableMetric);
-            } catch (error) {
-              console.error("Invalid regex in used metric:", usedMetric, error);
-              return false;
+
+      console.log(`Used Metrics ${usedMetrics}`);
+
+      let unusedMetrics:string[] = new Array();
+
+      // START
+      // Helper function to check if a metric matches any of the used metrics (with wildcard support)
+      const matchesUsedMetric = (metric: string, usedMetrics: string[]): boolean => {
+        return usedMetrics.some((usedMetric) => {
+          try {
+            const regexPattern = `^${usedMetric.replace(/\./g, '\\.').replace(/\*/g, '.*')}$`;
+            const regex = new RegExp(regexPattern);
+            console.log(`Tested regex pattern ${regexPattern} on ${metric}, ${regex.test(metric)}`);
+            return regex.test(metric);
+          } catch (error) {
+            console.error("Invalid regex in used metric:", usedMetric, error);
+            return false;
+          }
+        });
+      };
+
+      // Recursive function to traverse the metric tree
+      const traverseTree = (node: Record<string, any>, currentPath: string) => {
+        console.log(`currentpath ${currentPath}, ${node}`);
+        for (const key in node) {
+          const newPath = currentPath ? `${currentPath}.${key}` : key;
+          console.log(`currentpath ${newPath}`);
+
+          if (node[key] === null) {
+            console.log(`leaf node ${newPath}`);
+            // It's a leaf node
+            if (!matchesUsedMetric(newPath, usedMetrics)) {
+              unusedMetrics.push(newPath);
             }
-          })
-      );
-  
+          } else {
+            // It's a branch; recurse into it
+            traverseTree(node[key], newPath);
+          }
+        }
+      };
+
+      // Start traversing from the root of the metric tree
+      traverseTree(metricTree, selectedService.value);
+
       console.log("Unused Metrics:", unusedMetrics);
   
       // Set the comparison result
       setMetricComparison({
-        usedMetrics: usedMetricsArray,
+        usedMetrics: usedMetrics,
         unusedMetrics: unusedMetrics,
       });
     } catch (error) {
@@ -167,7 +195,7 @@ function PageOne() {
           const treeMetrics:Record<string, any> = result.tree
           printTree(treeMetrics);
 
-          await compareMetrics(formattedMetrics); // Compare metrics
+          await compareMetrics(formattedMetrics, treeMetrics); // Compare metrics
 
         } catch (error) {
           console.error('Error in fetching or comparing metrics:', error);
@@ -177,7 +205,7 @@ function PageOne() {
     fetchAndCompareMetrics();
   }, [selectedService, selectedDashboard]);
 
-  const formatMetricsBySuffix = (metrics: string[]): string[] => {
+  const removeRedundantSuffixes = (metrics: string[]): string[] => {
     // Initialize map for prefix if not exists
     // maps each metric (minus the suffix) to a frequency map of suffix occurances
     const groupedMetrics = new Set<string>();
