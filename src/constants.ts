@@ -85,6 +85,5 @@ export const suffixSet: Set<string> = new Set([
   '.sum_squares_90',
   '.upper',
   '.upper_90',
-  'GET',
   '.GET',
 ]);
