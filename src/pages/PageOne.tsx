@@ -277,11 +277,6 @@ function PageOne() {
   
     return <div>{renderTree(data)}</div>;
   };
-  
-  
-  
-
-  
 
   return (
     <PluginPage>
