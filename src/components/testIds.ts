@@ -8,4 +8,8 @@ export const testIds = {
     container: 'data-testid pg-one-container',
     navigateToFour: 'data-testid navigate-to-four',
   },
+  pageTwo: {
+    container: 'data-testid pg-two-container',
+    navigateToFour: 'data-testid navigate-to-four',
+  },
 };
