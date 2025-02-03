@@ -4,6 +4,7 @@ import { GrafanaTheme2 } from "@grafana/data";
 import { useStyles2, Select, Checkbox, Button } from "@grafana/ui";
 import { PluginPage, getBackendSrv } from "@grafana/runtime";
 import { VscChevronDown, VscChevronRight } from "react-icons/vsc";
+import { fetchAvailableServices } from "../utils/page_utils";
 
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
@@ -28,31 +29,19 @@ function DashboardAssistant() {
   const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-  // Fetch available services and the datasource UID when the component mounts.
-  useEffect(() => {
-    fetchAvailableServices();
-    fetchGraphiteDatasourceUid();
-  }, []);
+	useEffect(() => {
+		const loadServices = async () => {
+			setLoadingServices(true);
+			const services = await fetchAvailableServices();
+			console.log("Setting available services:", services);
+			setAvailableServices(services);
+			setLoadingServices(false);
+		};
+	
+		loadServices();
+		fetchGraphiteDatasourceUid(); // unique to PageTwo
+	}, []);
 
-  // Fetches the list of available services from Graphite.
-  const fetchAvailableServices = async () => {
-    setLoadingServices(true);
-    setServiceError(null);
-    try {
-      const response = await fetch("http://localhost:9080/metrics/find?query=*");
-      const services = await response.json();
-      const formattedServices = services.map((service: any) => ({
-        label: service.text,
-        value: service.text,
-      }));
-      setAvailableServices(formattedServices);
-    } catch (error) {
-      console.error("Error fetching services:", error);
-      setServiceError("Failed to load services");
-    } finally {
-      setLoadingServices(false);
-    }
-  };
 
   // Fetches the Graphite datasource UID from Grafana.
   const fetchGraphiteDatasourceUid = async () => {
