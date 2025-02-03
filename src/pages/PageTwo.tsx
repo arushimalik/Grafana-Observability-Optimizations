@@ -4,8 +4,8 @@ import { GrafanaTheme2 } from '@grafana/data';
 import { useStyles2, Select, Checkbox, Button } from '@grafana/ui';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
-import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison, suffixSet } from '../constants';
-
+import { Option, ServiceResponse } from '../constants';
+import { fetchAvailableServices } from "../utils/page_utils";
 
 function PageTwo() {
 
@@ -22,7 +22,7 @@ function PageTwo() {
 	const [selectedService, setSelectedService] = useState<Option | null>(null);
 	const [availableServices, setAvailableServices] = useState<Option[]>([]);
 	const [serviceMetrics, setServiceMetrics] = useState<Option[]>([]);
-	const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]); // Nested tree structure for all metrics
+	const [_, setMetricsTree] = useState<MetricNode[]>([]); // Nested tree structure for all metrics
 	const [loadingServices, setLoadingServices] = useState(false);
 	const [serviceError, setServiceError] = useState<string | null>(null);
 	const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
@@ -30,30 +30,19 @@ function PageTwo() {
 	const [dashboardError, setDashboardError] = useState<string | null>(null);
 	const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
 
-	useEffect(() => {
-		fetchAvailableServices();  // Fetch list of services on component mount
-		fetchGraphiteDatasourceUid();  // Fetch the Graphite datasource UID
-	}, []);
+useEffect(() => {
+  const loadServices = async () => {
+    setLoadingServices(true);
+    const services = await fetchAvailableServices();
+		console.log("Setting available services:", services);
+    setAvailableServices(services);
+    setLoadingServices(false);
+  };
 
-	// Fetches available services from Graphite and formats them for display
-	const fetchAvailableServices = async () => {
-		setLoadingServices(true);
-		setServiceError(null);
-		try {
-			const response = await fetch('http://localhost:9080/metrics/find?query=*'); // Update URL as needed
-			const services: ServiceResponse[] = await response.json();
-			const formattedServices = services.map((service) => ({
-				label: service.text,
-				value: service.text,
-			}));
-			setAvailableServices(formattedServices);
-		} catch (error) {
-			console.error('Error fetching services from Graphite:', error);
-			setServiceError('Failed to load services');
-		} finally {
-			setLoadingServices(false);
-		}
-	};
+  loadServices();
+  fetchGraphiteDatasourceUid(); // unique to PageTwo
+}, []);
+
 
 	// Fetches the UID for the Graphite datasource
 	const fetchGraphiteDatasourceUid = async () => {
