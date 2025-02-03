@@ -35,6 +35,14 @@
       "role": "Admin",
       "addToNav": true,
       "defaultNav": false
+    },
+    {
+      "type": "page",
+      "name": "Dashboard Assistant Page",
+      "path": "/a/%PLUGIN_ID%/pageTwo",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
     }
   ],
   "dependencies": {
