@@ -22,7 +22,7 @@ function PageTwo() {
 	const [selectedService, setSelectedService] = useState<Option | null>(null);
 	const [availableServices, setAvailableServices] = useState<Option[]>([]);
 	const [serviceMetrics, setServiceMetrics] = useState<Option[]>([]);
-	const [_, setMetricsTree] = useState<MetricNode[]>([]); // Nested tree structure for all metrics
+	const [, setMetricsTree] = useState<MetricNode[]>([]); // Nested tree structure for all metrics
 	const [loadingServices, setLoadingServices] = useState(false);
 	const [serviceError, setServiceError] = useState<string | null>(null);
 	const [selectedMetrics, setSelectedMetrics] = useState<string[]>([]);
@@ -41,7 +41,7 @@ useEffect(() => {
 
   loadServices();
   fetchGraphiteDatasourceUid(); // unique to PageTwo
-}, []);
+}, [selectedService]);
 
 
 	// Fetches the UID for the Graphite datasource
