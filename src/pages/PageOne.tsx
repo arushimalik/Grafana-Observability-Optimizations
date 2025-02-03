@@ -21,34 +21,10 @@ function PageOne() {
   const [availableDashboards, setAvailableDashboards] = useState<Option[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingDashboards, setLoadingDashboards] = useState(false);
-  const [serviceError, _] = useState<string | null>(null);
+  const [serviceError,] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [metricComparison, setMetricComparison] = useState<MetricComparison | null>(null);
 
-  // useEffect(() => {
-  //   // fetchAvailableServices();
-  //   fetchAvailableDashboards();
-  // }, []);
-  
-
-  // const fetchAvailableServices = async () => {
-  //   setLoadingServices(true);
-  //   setServiceError(null);
-  //   try {
-  //     const response = await fetch('http://localhost:9080/metrics/find?query=*'); // TODO: THIS SHOULD NOT BE HARDCODED. FIX THIS.
-  //     const services: ServiceResponse[] = await response.json();
-  //     const formattedServices = services.map((service) => ({
-  //       label: service.text,
-  //       value: service.text,
-  //     }));
-  //     setAvailableServices(formattedServices);
-  //   } catch (error) {
-  //     console.error('Error fetching services from Graphite:', error);
-  //     setServiceError('Failed to load services');
-  //   } finally {
-  //     setLoadingServices(false);
-  //   }
-  // };
   useEffect(() => {
     const loadServices = async () => {
       setLoadingServices(true);
@@ -60,7 +36,7 @@ function PageOne() {
   
     loadServices();
     fetchAvailableDashboards(); // unique to pageOne
-  }, []);
+  }, [selectedService]);
 
   const fetchAvailableDashboards = async () => {
     setLoadingDashboards(true);
