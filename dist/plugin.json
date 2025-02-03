@@ -16,22 +16,30 @@
       "large": "img/logo.svg"
     },
     "screenshots": [],
-    "version": "1.0.0",
-    "updated": "2025-02-03"
+    "version": "%VERSION%",
+    "updated": "%TODAY%"
   },
   "includes": [
     {
       "type": "page",
       "icon": "cog",
       "name": "Configuration",
-      "path": "/plugins/hmcclinic-skeleton-app",
+      "path": "/plugins/%PLUGIN_ID%",
       "role": "Admin",
       "addToNav": true
     }, 
     {
       "type": "page",
       "name": "Unused Metrics Page",
-      "path": "/a/hmcclinic-skeleton-app/unused",
+      "path": "/a/%PLUGIN_ID%/unused",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
+    },
+    {
+      "type": "page",
+      "name": "Dashboard Assistant Page",
+      "path": "/a/%PLUGIN_ID%/pageTwo",
       "role": "Admin",
       "addToNav": true,
       "defaultNav": false

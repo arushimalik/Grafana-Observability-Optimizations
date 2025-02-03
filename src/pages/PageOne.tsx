@@ -6,7 +6,8 @@ import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
 
 import { getServiceMetrics, printTree } from 'getServiceMetrics';
-import { ROUTES, Option, ServiceResponse, DashboardResponse, MetricComparison, suffixSet } from '../constants';
+import { Option, DashboardResponse, MetricComparison, suffixSet } from '../constants';
+import { fetchAvailableServices } from "../utils/page_utils";
 
 import { VscChevronDown, VscChevronRight, VscIndent } from "react-icons/vsc";
 
@@ -20,34 +21,22 @@ function PageOne() {
   const [availableDashboards, setAvailableDashboards] = useState<Option[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [loadingDashboards, setLoadingDashboards] = useState(false);
-  const [serviceError, setServiceError] = useState<string | null>(null);
+  const [serviceError,] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [metricComparison, setMetricComparison] = useState<MetricComparison | null>(null);
 
   useEffect(() => {
-    fetchAvailableServices();
-    fetchAvailableDashboards();
-  }, []);
-  
-
-  const fetchAvailableServices = async () => {
-    setLoadingServices(true);
-    setServiceError(null);
-    try {
-      const response = await fetch('http://localhost:9080/metrics/find?query=*'); // TODO: THIS SHOULD NOT BE HARDCODED. FIX THIS.
-      const services: ServiceResponse[] = await response.json();
-      const formattedServices = services.map((service) => ({
-        label: service.text,
-        value: service.text,
-      }));
-      setAvailableServices(formattedServices);
-    } catch (error) {
-      console.error('Error fetching services from Graphite:', error);
-      setServiceError('Failed to load services');
-    } finally {
+    const loadServices = async () => {
+      setLoadingServices(true);
+      const services = await fetchAvailableServices();
+      console.log("Setting available services:", services);
+      setAvailableServices(services);
       setLoadingServices(false);
-    }
-  };
+    };
+  
+    loadServices();
+    fetchAvailableDashboards(); // unique to pageOne
+  }, [selectedService]);
 
   const fetchAvailableDashboards = async () => {
     setLoadingDashboards(true);
