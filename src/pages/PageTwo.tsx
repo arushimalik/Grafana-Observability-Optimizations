@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { css } from "@emotion/css";
 import { GrafanaTheme2 } from "@grafana/data";
-import { useStyles2, Select, Checkbox, Button } from "@grafana/ui";
+import { useStyles2, Select, Checkbox, Button, Input } from "@grafana/ui";
 import { PluginPage, getBackendSrv } from "@grafana/runtime";
 import { VscChevronDown, VscChevronRight } from "react-icons/vsc";
 import { fetchAvailableServices } from "../utils/page_utils";
@@ -9,7 +9,6 @@ import { fetchAvailableServices } from "../utils/page_utils";
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
 
-  // A tree node representing a metric
   type MetricNode = {
     name: string;
     fullPath: string;
@@ -17,33 +16,30 @@ function DashboardAssistant() {
     isLeaf: boolean;
   };
 
-  // State variables
   const [selectedService, setSelectedService] = useState<{ label: string; value: string } | null>(null);
   const [availableServices, setAvailableServices] = useState<{ label: string; value: string }[]>([]);
   const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<Set<string>>(new Set());
+  const [metricGraphSettings, setMetricGraphSettings] = useState<Record<string, { type: string; group: string }>>({});
   const [creatingDashboard, setCreatingDashboard] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-	useEffect(() => {
-		const loadServices = async () => {
-			setLoadingServices(true);
-			const services = await fetchAvailableServices();
-			console.log("Setting available services:", services);
-			setAvailableServices(services);
-			setLoadingServices(false);
-		};
-	
-		loadServices();
-		fetchGraphiteDatasourceUid(); // unique to PageTwo
-	}, []);
+  useEffect(() => {
+    const loadServices = async () => {
+      setLoadingServices(true);
+      const services = await fetchAvailableServices();
+      setAvailableServices(services);
+      setLoadingServices(false);
+    };
 
+    loadServices();
+    fetchGraphiteDatasourceUid();
+  }, []);
 
-  // Fetches the Graphite datasource UID from Grafana.
   const fetchGraphiteDatasourceUid = async () => {
     try {
       const datasources = await getBackendSrv().get("/api/datasources");
@@ -54,19 +50,16 @@ function DashboardAssistant() {
         setDashboardError("Graphite datasource not found");
       }
     } catch (error) {
-      console.error("Error fetching datasources:", error);
       setDashboardError("Failed to fetch datasource UID");
     }
   };
 
-  // When a service is selected, fetch its metrics and build the tree.
   useEffect(() => {
     if (selectedService) {
       getServiceMetrics();
     }
   }, [selectedService]);
 
-  // Recursively builds the tree of metrics.
   const getServiceMetrics = async () => {
     if (!selectedService) return;
 
@@ -94,88 +87,60 @@ function DashboardAssistant() {
       const tree = await Promise.all(services.map(buildTree));
       setMetricsTree(tree);
     } catch (error) {
-      console.error("Error fetching service metrics:", error);
       setServiceError("Failed to load metrics");
     }
   };
 
-  // Helper: Recursively returns an array of all leaf metric keys for a given node.
   const getAllLeafKeys = (node: MetricNode): string[] => {
     if (node.isLeaf) return [node.fullPath];
     return node.children.flatMap(getAllLeafKeys);
   };
 
-  // Helper: Determines a node's selection status.
-  // Returns "none", "partial", or "full".
   const getNodeSelectionStatus = (node: MetricNode): "none" | "partial" | "full" => {
     if (node.isLeaf) return selectedMetrics.has(node.fullPath) ? "full" : "none";
     const leaves = getAllLeafKeys(node);
     const selectedCount = leaves.filter((leaf) => selectedMetrics.has(leaf)).length;
-    if (selectedCount === 0) return "none";
-    if (selectedCount === leaves.length) return "full";
-    return "partial";
+    return selectedCount === 0 ? "none" : selectedCount === leaves.length ? "full" : "partial";
   };
 
-  // Toggles selection for both leaves and parent nodes.
   const toggleNodeSelection = (node: MetricNode) => {
     setSelectedMetrics((prev) => {
       const newSelection = new Set(prev);
       const leaves = getAllLeafKeys(node);
-      // If any descendant is selected, then deselect all; otherwise, select them all.
       const anySelected = leaves.some((leaf) => newSelection.has(leaf));
-      leaves.forEach((leaf) => {
-        if (anySelected) {
-          newSelection.delete(leaf);
-        } else {
-          newSelection.add(leaf);
-        }
-      });
+      leaves.forEach((leaf) => (anySelected ? newSelection.delete(leaf) : newSelection.add(leaf)));
       return newSelection;
     });
   };
 
-  // Toggles the expansion of a node (for showing/hiding its children).
   const toggleExpand = (nodeId: string) => {
     setExpandedNodes((prev) => {
       const newSet = new Set(prev);
-      if (newSet.has(nodeId)) {
-        newSet.delete(nodeId);
-      } else {
-        newSet.add(nodeId);
-      }
+      newSet.has(nodeId) ? newSet.delete(nodeId) : newSet.add(nodeId);
       return newSet;
     });
   };
 
-  // Renders the metrics tree recursively.
-  const renderTree = (nodes: MetricNode[]) => {
-    return nodes.map((node) => {
-      const isExpanded = expandedNodes.has(node.fullPath);
-      const hasChildren = node.children.length > 0;
-      const status = getNodeSelectionStatus(node);
-
-      return (
-        <div key={node.fullPath} className={styles.treeNode}>
-          <div className={styles.nodeHeader}>
-            {hasChildren && (
-              <span onClick={() => toggleExpand(node.fullPath)} className={styles.expandIcon}>
-                {isExpanded ? <VscChevronDown /> : <VscChevronRight />}
-              </span>
-            )}
-            <Checkbox
-              label={node.name}
-              checked={status === "full"}
-              indeterminate={status === "partial"}
-              onChange={() => toggleNodeSelection(node)}
-            />
-          </div>
-          {hasChildren && isExpanded && <div className={styles.childNodes}>{renderTree(node.children)}</div>}
+  const renderTree = (nodes: MetricNode[]) =>
+    nodes.map((node) => (
+      <div key={node.fullPath} className={styles.treeNode}>
+        <div className={styles.nodeHeader}>
+          {node.children.length > 0 && (
+            <span onClick={() => toggleExpand(node.fullPath)} className={styles.expandIcon}>
+              {expandedNodes.has(node.fullPath) ? <VscChevronDown /> : <VscChevronRight />}
+            </span>
+          )}
+          <Checkbox
+            label={node.name}
+            checked={getNodeSelectionStatus(node) === "full"}
+            indeterminate={getNodeSelectionStatus(node) === "partial"}
+            onChange={() => toggleNodeSelection(node)}
+          />
         </div>
-      );
-    });
-  };
+        {node.children.length > 0 && expandedNodes.has(node.fullPath) && <div className={styles.childNodes}>{renderTree(node.children)}</div>}
+      </div>
+    ));
 
-  // Creates a new dashboard using the selected metrics.
   const createDashboard = async () => {
     if (selectedMetrics.size === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please select at least one metric and ensure the datasource is available.");
@@ -185,62 +150,32 @@ function DashboardAssistant() {
     setCreatingDashboard(true);
     setDashboardError(null);
 
-    // Convert the Set to an array.
     const selectedMetricsArray = [...selectedMetrics];
+    const groupedMetrics: Record<string, string[]> = {};
+    selectedMetricsArray.forEach((metric) => {
+      const group = metricGraphSettings[metric]?.group || metric;
+      groupedMetrics[group] = groupedMetrics[group] || [];
+      groupedMetrics[group].push(metric);
+    });
 
-    // Construct the dashboard JSON.
-    const newDashboard = {
-      dashboard: {
-        title: `${selectedService?.label} Metrics Dashboard`,
-        panels: selectedMetricsArray.map((metric, index) => ({
-          title: metric,
-          type: "timeseries",
-          datasource: {
-            type: "graphite",
-            uid: graphiteDatasourceUid,
-          },
-          targets: [{ target: metric, refId: "A" }],
-          id: index + 1,
-          gridPos: { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 },
-          fieldConfig: {
-            defaults: {
-              custom: {
-                drawStyle: "line",
-                lineInterpolation: "linear",
-                showPoints: "auto",
-                lineWidth: 1,
-                fillOpacity: 0,
-                gradientMode: "none",
-              },
-              color: {
-                mode: "palette-classic",
-              },
-              thresholds: {
-                mode: "absolute",
-                steps: [
-                  { color: "green", value: null },
-                  { color: "red", value: 80 },
-                ],
-              },
-            },
-            overrides: [],
-          },
-          options: {
-            tooltip: { mode: "single", sort: "none" },
-            legend: { showLegend: true, displayMode: "list", placement: "bottom" },
-          },
-        })),
+    const panels = Object.entries(groupedMetrics).map(([group, metrics], index) => ({
+      title: group,
+      type: "timeseries",
+      datasource: { type: "graphite", uid: graphiteDatasourceUid },
+      targets: metrics.map((metric) => ({ target: metric, refId: `A${index}` })),
+      id: index + 1,
+      gridPos: { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 },
+      fieldConfig: {
+        defaults: { custom: { drawStyle: metricGraphSettings[metrics[0]]?.type || "line" } },
       },
-      folderId: 0,
-      overwrite: false,
-    };
+    }));
+
+    const newDashboard = { dashboard: { title: `${selectedService?.label} Metrics Dashboard`, panels }, folderId: 0, overwrite: false };
 
     try {
-      const response = await getBackendSrv().post("/api/dashboards/db", newDashboard);
-      console.log("Dashboard created:", response);
+      await getBackendSrv().post("/api/dashboards/db", newDashboard);
       alert(`Dashboard "${newDashboard.dashboard.title}" created successfully!`);
-    } catch (error) {
-      console.error("Error creating dashboard:", error);
+    } catch {
       setDashboardError("Failed to create dashboard");
     } finally {
       setCreatingDashboard(false);
@@ -251,6 +186,8 @@ function DashboardAssistant() {
     <PluginPage>
       <div>
         <h3>Dashboard Assistant</h3>
+
+        {/* Service Selection */}
         <div className={styles.marginTop}>
           <Select
             options={availableServices}
@@ -262,6 +199,7 @@ function DashboardAssistant() {
           {serviceError && <div className={styles.error}>{serviceError}</div>}
         </div>
 
+        {/* Metrics Tree */}
         {metricsTree.length > 0 && (
           <div className={styles.marginTop}>
             <h4>Select Metrics to Include in Dashboard:</h4>
@@ -269,6 +207,47 @@ function DashboardAssistant() {
           </div>
         )}
 
+        {/* Selected Metrics Section */}
+        {selectedMetrics.size > 0 && (
+          <div className={styles.selectedMetricsContainer}>
+            <h4>Configure Selected Metrics:</h4>
+            {Array.from(selectedMetrics).map((metric) => (
+              <div key={metric} className={styles.metricRow}>
+                <span className={styles.metricName}>{metric}</span>
+
+                {/* Graph Type Selection */}
+                <Select
+                  options={[
+                    { label: "Line", value: "line" },
+                    { label: "Bar", value: "bar" },
+                    { label: "Area", value: "area" },
+                  ]}
+                  value={metricGraphSettings[metric]?.type || "line"}
+                  onChange={(selected) =>
+                    setMetricGraphSettings((prev) => ({
+                      ...prev,
+                      [metric]: { ...prev[metric], type: selected.value },
+                    }))
+                  }
+                />
+
+                {/* Grouping Input */}
+                <Input
+                  placeholder="Group ID (optional)"
+                  value={metricGraphSettings[metric]?.group || ""}
+                  onChange={(event) =>
+                    setMetricGraphSettings((prev) => ({
+                      ...prev,
+                      [metric]: { ...prev[metric], group: event.target.value || null },
+                    }))
+                  }
+                />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Dashboard Creation */}
         <div className={styles.marginTop}>
           <Button onClick={createDashboard} disabled={creatingDashboard}>
             {creatingDashboard ? "Creating Dashboard..." : "Create Dashboard"}
@@ -303,5 +282,22 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
   childNodes: css`
     margin-left: ${theme.spacing(3)};
+  `,
+  selectedMetricsContainer: css`
+    margin-top: ${theme.spacing(3)};
+    padding: ${theme.spacing(2)};
+    border: 1px solid ${theme.colors.border.weak};
+    border-radius: ${theme.shape.borderRadius()};
+    background-color: ${theme.colors.background.secondary};
+  `,
+  metricRow: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: ${theme.spacing(1)} 0;
+  `,
+  metricName: css`
+    flex-grow: 1;
+    margin-right: ${theme.spacing(2)};
   `,
 });
