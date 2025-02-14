@@ -162,7 +162,7 @@ function DashboardAssistant() {
       title: group,
       type: "timeseries",
       datasource: { type: "graphite", uid: graphiteDatasourceUid },
-      targets: metrics.map((metric) => ({ target: metric, refId: `A${index}` })),
+      targets: metrics.map((metric) => ({ target: metric, refId: `A${index}${metric}` })),
       id: index + 1,
       gridPos: { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 },
       fieldConfig: {
@@ -224,7 +224,7 @@ function DashboardAssistant() {
                   ]}
                   value={metricGraphSettings[metric]?.type || "line"}
                   onChange={(selected) =>
-                    setMetricGraphSettings((prev) => ({
+                    setMetricGraphSettings((prev:string) => ({
                       ...prev,
                       [metric]: { ...prev[metric], type: selected.value },
                     }))
