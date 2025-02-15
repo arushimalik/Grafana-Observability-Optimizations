@@ -8,7 +8,11 @@ import { fetchAvailableServices } from "../utils/page_utils";
 
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
-
+  const TimeSeriesGraphStyleOptions = [
+    { label: "Line", value: "line" },
+    { label: "Bar", value: "bars" },
+    { label: "Point", value: "points" },
+  ]
   type MetricNode = {
     name: string;
     fullPath: string;
@@ -217,11 +221,7 @@ function DashboardAssistant() {
 
                 {/* Graph Type Selection */}
                 <Select
-                  options={[
-                    { label: "Line", value: "line" },
-                    { label: "Bar", value: "bar" },
-                    { label: "Area", value: "area" },
-                  ]}
+                  options={TimeSeriesGraphStyleOptions}
                   value={metricGraphSettings[metric]?.type || "line"}
                   onChange={(selected) =>
                     setMetricGraphSettings((prev:string) => ({
