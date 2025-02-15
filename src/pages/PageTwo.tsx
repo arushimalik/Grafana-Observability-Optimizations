@@ -31,6 +31,8 @@ function DashboardAssistant() {
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [selectedForBulkEdit, setSelectedForBulkEdit] = useState<Set<string>>(new Set());
+
 
   useEffect(() => {
     const loadServices = async () => {
@@ -189,7 +191,7 @@ function DashboardAssistant() {
   return (
     <PluginPage>
       <div>
-        <h3>Dashboard Assistant</h3>
+        <h3>Select metrics below to add them to your new dashboard.</h3>
 
         {/* Service Selection */}
         <div className={styles.marginTop}>
@@ -212,6 +214,53 @@ function DashboardAssistant() {
         )}
 
         {/* Selected Metrics Section */}
+        {selectedForBulkEdit.size > 0 && (
+        <div className={styles.bulkActions}>
+          {/* Bulk Change Chart Style */}
+          <h4>Change Selected Metrics</h4>
+          <Select
+            options={TimeSeriesGraphStyleOptions}
+            placeholder="Change Chart Style"
+            onChange={(selected) => {
+              setMetricGraphSettings((prev) => {
+                const updatedSettings = { ...prev };
+                selectedForBulkEdit.forEach((metric) => {
+                  updatedSettings[metric] = { ...updatedSettings[metric], type: selected.value??"" };
+                });
+                return updatedSettings;
+              });
+            }}
+          />
+
+          {/* Bulk Grouping Input */}
+          <Input
+            placeholder="Enter Group ID"
+            onBlur={(event) => {
+              const groupValue = event.target.value.trim(); // Ensure trimmed input
+              setMetricGraphSettings((prev) => {
+                const updatedSettings = { ...prev };
+                selectedForBulkEdit.forEach((metric) => {
+                  updatedSettings[metric] = {
+                    ...updatedSettings[metric],
+                    group: groupValue, // Always assign a string, even if empty
+                  };
+                });
+                return updatedSettings;
+              });
+            }}
+          />
+
+
+          {/* Clear Selection Button */}
+          <Button
+            variant="secondary"
+            onClick={() => setSelectedForBulkEdit(new Set())}
+          >
+            Clear Selection
+          </Button>
+        </div>
+      )}
+
         {selectedMetrics.size > 0 && (
           <div className={styles.selectedMetricsContainer}>
             <h4>Configure Selected Metrics:</h4>
@@ -226,7 +275,7 @@ function DashboardAssistant() {
                   onChange={(selected) =>
                     setMetricGraphSettings((prev:string) => ({
                       ...prev,
-                      [metric]: { ...prev[metric], type: selected.value },
+                      [metric]: { ...prev[metric], type: selected.value??"" },
                     }))
                   }
                 />
@@ -241,6 +290,17 @@ function DashboardAssistant() {
                       [metric]: { ...prev[metric], group: event.target.value || null },
                     }))
                   }
+                />
+                <p>Select</p>
+                <Checkbox
+                  checked={selectedForBulkEdit.has(metric)}
+                  onChange={() => {
+                    setSelectedForBulkEdit((prev) => {
+                      const newSelection = new Set(prev);
+                      newSelection.has(metric) ? newSelection.delete(metric) : newSelection.add(metric);
+                      return newSelection;
+                    });
+                  }}
                 />
               </div>
             ))}
@@ -299,5 +359,12 @@ const getStyles = (theme: GrafanaTheme2) => ({
   metricName: css`
     flex-grow: 1;
     margin-right: ${theme.spacing(2)};
+  `,
+  bulkActions: css`
+    margin-top: ${theme.spacing(3)};
+    padding: ${theme.spacing(2)};
+    border: 1px solid ${theme.colors.border.weak};
+    border-radius: ${theme.shape.borderRadius()};
+    background-color: ${theme.colors.background.secondary};
   `,
 });
