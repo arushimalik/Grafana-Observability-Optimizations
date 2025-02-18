@@ -1,42 +1,53 @@
 import React, { useState, useEffect } from "react";
 import { css } from "@emotion/css";
 import { GrafanaTheme2 } from "@grafana/data";
-import { useStyles2, Select, Checkbox, Button, Input } from "@grafana/ui";
+import { useStyles2, Select, Checkbox, Button } from "@grafana/ui";
 import { PluginPage, getBackendSrv } from "@grafana/runtime";
 import { VscChevronDown, VscChevronRight } from "react-icons/vsc";
 import { fetchAvailableServices } from "../utils/page_utils";
 
+type MetricNode = {
+  name: string;
+  fullPath: string;
+  children: MetricNode[];
+  isLeaf: boolean;
+};
+
+type GraphType = { label: string; value: string };
+
+const TimeSeriesGraphStyleOptions: GraphType[] = [
+  { label: "Line", value: "line" },
+  { label: "Bar", value: "bars" },
+  { label: "Point", value: "points" },
+];
+
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
-  const TimeSeriesGraphStyleOptions = [
-    { label: "Line", value: "line" },
-    { label: "Bar", value: "bars" },
-    { label: "Point", value: "points" },
-  ]
-  type MetricNode = {
-    name: string;
-    fullPath: string;
-    children: MetricNode[];
-    isLeaf: boolean;
-  };
 
-  const [selectedService, setSelectedService] = useState<{ label: string; value: string } | null>(null); 
-  const [availableServices, setAvailableServices] = useState<{ label: string; value: string }[]>([]);
-  const [addedGraphs, setAddedGraphs] = useState<{ metrics: string[]; graphType: { label: string; value: string };}[]>([]); 
-  const [selectedGraphType, setSelectedGraphType] = useState<{ label: string; value: string } >({ label: "Line", value: "line" }); 
+  // State definitions
+  const [selectedService, setSelectedService] = useState<GraphType | null>(null);
+  const [availableServices, setAvailableServices] = useState<GraphType[]>([]);
+  const [addedGraphs, setAddedGraphs] = useState<
+    { metrics: string[]; graphType: GraphType }[]
+  >([]);
+  const [selectedGraphType, setSelectedGraphType] = useState<GraphType>({
+    label: "Line",
+    value: "line",
+  });
   const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<Set<string>>(new Set());
   const [creatingDashboard, setCreatingDashboard] = useState(false);
-  const [addingGraph, setAddingGraph] = useState(false); 
+  const [addingGraph, setAddingGraph] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
-  const [graphError, setGraphError] = useState<string | null>(null); 
-  const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
+  const [graphError, setGraphError] = useState<string | null>(null);
+  const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(
+    null
+  );
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  // TODO make this more organized
 
-
+  // Fetch available services and datasource UID on mount
   useEffect(() => {
     const loadServices = async () => {
       setLoadingServices(true);
@@ -63,6 +74,7 @@ function DashboardAssistant() {
     }
   };
 
+  // Fetch metrics tree when a service is selected
   useEffect(() => {
     if (selectedService) {
       getServiceMetrics();
@@ -71,10 +83,12 @@ function DashboardAssistant() {
 
   const getServiceMetrics = async () => {
     if (!selectedService) return;
-
     setServiceError(null);
+
     try {
-      const response = await fetch(`http://localhost:9080/metrics/find?query=${selectedService.value}.*`);
+      const response = await fetch(
+        `http://localhost:9080/metrics/find?query=${selectedService.value}.*`
+      );
       const services = await response.json();
 
       const buildTree = async (service: any): Promise<MetricNode> => {
@@ -86,7 +100,9 @@ function DashboardAssistant() {
         };
 
         if (!service.leaf) {
-          const childResponse = await fetch(`http://localhost:9080/metrics/find?query=${service.id}.*`);
+          const childResponse = await fetch(
+            `http://localhost:9080/metrics/find?query=${service.id}.*`
+          );
           const children = await childResponse.json();
           node.children = await Promise.all(children.map(buildTree));
         }
@@ -100,10 +116,9 @@ function DashboardAssistant() {
     }
   };
 
-  const getAllLeafKeys = (node: MetricNode): string[] => {
-    if (node.isLeaf) return [node.fullPath];
-    return node.children.flatMap(getAllLeafKeys);
-  };
+  // Helpers for tree rendering
+  const getAllLeafKeys = (node: MetricNode): string[] =>
+    node.isLeaf ? [node.fullPath] : node.children.flatMap(getAllLeafKeys);
 
   const getNodeSelectionStatus = (node: MetricNode): "none" | "partial" | "full" => {
     if (node.isLeaf) return selectedMetrics.has(node.fullPath) ? "full" : "none";
@@ -117,7 +132,9 @@ function DashboardAssistant() {
       const newSelection = new Set(prev);
       const leaves = getAllLeafKeys(node);
       const anySelected = leaves.some((leaf) => newSelection.has(leaf));
-      leaves.forEach((leaf) => (anySelected ? newSelection.delete(leaf) : newSelection.add(leaf)));
+      leaves.forEach((leaf) =>
+        anySelected ? newSelection.delete(leaf) : newSelection.add(leaf)
+      );
       return newSelection;
     });
   };
@@ -130,7 +147,7 @@ function DashboardAssistant() {
     });
   };
 
-  const renderTree = (nodes: MetricNode[]) =>
+  const renderTree = (nodes: MetricNode[]): JSX.Element[] =>
     nodes.map((node) => (
       <div key={node.fullPath} className={styles.treeNode}>
         <div className={styles.nodeHeader}>
@@ -146,11 +163,14 @@ function DashboardAssistant() {
             onChange={() => toggleNodeSelection(node)}
           />
         </div>
-        {node.children.length > 0 && expandedNodes.has(node.fullPath) && <div className={styles.childNodes}>{renderTree(node.children)}</div>}
+        {node.children.length > 0 && expandedNodes.has(node.fullPath) && (
+          <div className={styles.childNodes}>{renderTree(node.children)}</div>
+        )}
       </div>
     ));
 
-  const addGraph = async () => { 
+  // Graph addition and removal logic
+  const addGraph = async () => {
     if (selectedMetrics.size === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please select at least one metric and ensure the datasource is available.");
       return;
@@ -158,18 +178,18 @@ function DashboardAssistant() {
 
     setAddingGraph(true);
     setGraphError(null);
-    
+
     try {
       const selectedMetricsArray = [...selectedMetrics];
-      setAddedGraphs(prevGraphs => [
+      setAddedGraphs((prevGraphs) => [
         { metrics: selectedMetricsArray, graphType: selectedGraphType },
         ...prevGraphs,
       ]);
-      console.log(addedGraphs)
+      console.log(addedGraphs);
     } catch {
       setGraphError("Failed to add graph");
     } finally {
-      setAddingGraph(false)
+      setAddingGraph(false);
     }
   };
 
@@ -182,35 +202,32 @@ function DashboardAssistant() {
       )
     );
   };
-  
+
+  // Dashboard creation logic
   const createDashboard = async () => {
     if (addedGraphs.length === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please add at least one graph and ensure the datasource is available.");
       return;
     }
-  
+
     setCreatingDashboard(true);
     setDashboardError(null);
-  
-    // Create panels for each added graph
+
     const panels = addedGraphs.map((graph, index) => ({
       title: `Graph ${index + 1}`,
       type: "timeseries",
       datasource: { type: "graphite", uid: graphiteDatasourceUid },
-      // Create a target for each metric in the graph
       targets: graph.metrics.map((metric) => ({
         target: metric,
         refId: `A${index}${metric}`,
       })),
       id: index + 1,
-      // Compute grid position (arranges panels in two columns)
       gridPos: { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 },
-      // Use the selected graph type for the panel's drawing style
       fieldConfig: {
         defaults: { custom: { drawStyle: graph.graphType.value } },
       },
     }));
-  
+
     const newDashboard = {
       dashboard: {
         title: `${selectedService?.label} Metrics Dashboard`,
@@ -219,7 +236,7 @@ function DashboardAssistant() {
       folderId: 0,
       overwrite: false,
     };
-  
+
     try {
       await getBackendSrv().post("/api/dashboards/db", newDashboard);
       alert(`Dashboard "${newDashboard.dashboard.title}" created successfully!`);
@@ -258,31 +275,28 @@ function DashboardAssistant() {
         {/* Graph Type Selection */}
         <div className={styles.marginTop}>
           <h4>Select Graph Type:</h4>
-          <Select 
+          <Select
             options={TimeSeriesGraphStyleOptions}
             value={selectedGraphType}
             onChange={setSelectedGraphType}
             placeholder="Select Graph Type"
-            // isLoading={loadingServices} do we need this?
           />
           {serviceError && <div className={styles.error}>{serviceError}</div>}
         </div>
 
         {/* Graph Creation Button */}
         <div className={styles.marginTop}>
-          <Button onClick={addGraph} disabled={addingGraph}>  
+          <Button onClick={addGraph} disabled={addingGraph}>
             {addingGraph ? "Creating Graph..." : "Add Graph"}
           </Button>
-          {graphError && <div className={styles.error}>{graphError}</div>} 
+          {graphError && <div className={styles.error}>{graphError}</div>}
         </div>
       </div>
-      
 
-      {/* Display Graphs Setup */} 
+      {/* Display Graphs Setup */}
       <div className={styles.marginTop}>
         {addedGraphs.length > 0 && (
           <div>
-            {/* List All Graphs */}
             {addedGraphs.map((graph, graphIndex) => (
               <div key={graphIndex} className={styles.graphDetail}>
                 <h5>
@@ -303,7 +317,6 @@ function DashboardAssistant() {
                 </div>
               </div>
             ))}
-
             {/* Dashboard Creation Button */}
             <div className={styles.marginTop}>
               <Button onClick={createDashboard} disabled={creatingDashboard}>
@@ -312,10 +325,8 @@ function DashboardAssistant() {
               {dashboardError && <div className={styles.error}>{dashboardError}</div>}
             </div>
           </div>
-
-          
-        )} 
-      </div>      
+        )}
+      </div>
     </PluginPage>
   );
 }
@@ -343,30 +354,6 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
   childNodes: css`
     margin-left: ${theme.spacing(3)};
-  `,
-  selectedMetricsContainer: css`
-    margin-top: ${theme.spacing(3)};
-    padding: ${theme.spacing(2)};
-    border: 1px solid ${theme.colors.border.weak};
-    border-radius: ${theme.shape.borderRadius()};
-    background-color: ${theme.colors.background.secondary};
-  `,
-  metricRow: css`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: ${theme.spacing(1)} 0;
-  `,
-  metricName: css`
-    flex-grow: 1;
-    margin-right: ${theme.spacing(2)};
-  `,
-  bulkActions: css`
-    margin-top: ${theme.spacing(3)};
-    padding: ${theme.spacing(2)};
-    border: 1px solid ${theme.colors.border.weak};
-    border-radius: ${theme.shape.borderRadius()};
-    background-color: ${theme.colors.background.secondary};
   `,
   createdGraphsContainer: css`
     margin-top: ${theme.spacing(3)};
