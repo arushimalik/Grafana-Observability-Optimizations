@@ -20,18 +20,23 @@ function DashboardAssistant() {
     isLeaf: boolean;
   };
 
-  const [selectedService, setSelectedService] = useState<{ label: string; value: string } | null>(null);
+  const [selectedService, setSelectedService] = useState<{ label: string; value: string } | null>(null); 
   const [availableServices, setAvailableServices] = useState<{ label: string; value: string }[]>([]);
+  const [addedGraphs, setAddedGraphs] = useState<{ metrics: string[]; graphType: { label: string; value: string };}[]>([]); // newly added ; got rid of label: string; 
+  const [selectedGraphType, setSelectedGraphType] = useState<{ label: string; value: string } >({ label: "Line", value: "line" }); 
   const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<Set<string>>(new Set());
   const [metricGraphSettings, setMetricGraphSettings] = useState<Record<string, { type: string; group: string }>>({});
   const [creatingDashboard, setCreatingDashboard] = useState(false);
+  const [addingGraph, setAddingGraph] = useState(false); // newly added 
   const [dashboardError, setDashboardError] = useState<string | null>(null);
+  const [graphError, setGraphError] = useState<string | null>(null); // newly added 
   const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   // const [selectedForBulkEdit, setSelectedForBulkEdit] = useState<Set<string>>(new Set());
+  // TODO make this more organized
 
 
   useEffect(() => {
@@ -147,41 +152,71 @@ function DashboardAssistant() {
       </div>
     ));
 
-  const createDashboard = async () => {
+  // newly added function
+  const addGraph = async () => { 
     if (selectedMetrics.size === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please select at least one metric and ensure the datasource is available.");
       return;
     }
 
+    setAddingGraph(true);
+    setGraphError(null);
+    
+    try {
+      const selectedMetricsArray = [...selectedMetrics];
+      setAddedGraphs(prevGraphs => [
+        { metrics: selectedMetricsArray, graphType: selectedGraphType },
+        ...prevGraphs,
+      ]);
+      console.log(addedGraphs)
+    } catch {
+      setGraphError("Failed to add graph");
+    } finally {
+      setAddingGraph(false)
+    }
+  };
+
+  const createDashboard = async () => {
+    if (addedGraphs.length === 0 || !graphiteDatasourceUid) {
+      setDashboardError("Please add at least one graph and ensure the datasource is available.");
+      return;
+    }
+  
     setCreatingDashboard(true);
     setDashboardError(null);
-
-    const selectedMetricsArray = [...selectedMetrics];
-    const groupedMetrics: Record<string, string[]> = {};
-    selectedMetricsArray.forEach((metric) => {
-      const group = metricGraphSettings[metric]?.group || metric;
-      groupedMetrics[group] = groupedMetrics[group] || [];
-      groupedMetrics[group].push(metric);
-    });
-
-    const panels = Object.entries(groupedMetrics).map(([group, metrics], index) => ({
-      title: group,
+  
+    // Create panels for each added graph
+    const panels = addedGraphs.map((graph, index) => ({
+      title: `Graph ${index + 1}`,
       type: "timeseries",
       datasource: { type: "graphite", uid: graphiteDatasourceUid },
-      targets: metrics.map((metric) => ({ target: metric, refId: `A${index}${metric}` })),
+      // Create a target for each metric in the graph
+      targets: graph.metrics.map((metric) => ({
+        target: metric,
+        refId: `A${index}${metric}`,
+      })),
       id: index + 1,
+      // Compute grid position (arranges panels in two columns)
       gridPos: { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 },
+      // Use the selected graph type for the panel's drawing style
       fieldConfig: {
-        defaults: { custom: { drawStyle: metricGraphSettings[metrics[0]]?.type || "line" } },
+        defaults: { custom: { drawStyle: graph.graphType.value } },
       },
     }));
-
-    const newDashboard = { dashboard: { title: `${selectedService?.label} Metrics Dashboard`, panels }, folderId: 0, overwrite: false };
-
+  
+    const newDashboard = {
+      dashboard: {
+        title: `${selectedService?.label} Metrics Dashboard`,
+        panels,
+      },
+      folderId: 0,
+      overwrite: false,
+    };
+  
     try {
       await getBackendSrv().post("/api/dashboards/db", newDashboard);
       alert(`Dashboard "${newDashboard.dashboard.title}" created successfully!`);
-    } catch {
+    } catch (error) {
       setDashboardError("Failed to create dashboard");
     } finally {
       setCreatingDashboard(false);
@@ -213,37 +248,59 @@ function DashboardAssistant() {
           </div>
         )}
 
-        {selectedMetrics.size > 0 && (
-          <div className={styles.selectedMetricsContainer}>
-            <h4>Configure Selected Metrics:</h4>
-            {Array.from(selectedMetrics).map((metric) => (
-              <div key={metric} className={styles.metricRow}>
-                <span className={styles.metricName}>{metric}</span>
-
-                {/* Graph Type Selection */}
-                <Select
-                  options={TimeSeriesGraphStyleOptions}
-                  value={metricGraphSettings[metric]?.type || "line"}
-                  onChange={(selected) =>
-                    setMetricGraphSettings((prev:string) => ({
-                      ...prev,
-                      [metric]: { ...prev[metric], type: selected.value??"" },
-                    }))
-                  }
-                />
-
-              </div>
-            ))}
-          </div>
-        )}
-        {/* Dashboard Creation */}
+        {/* Graph Type Selection (newly added ) */}
         <div className={styles.marginTop}>
-          <Button onClick={createDashboard} disabled={creatingDashboard}>
-            {creatingDashboard ? "Creating Dashboard..." : "Create Dashboard"}
+          <h4>Select Graph Type:</h4>
+          <Select 
+            options={TimeSeriesGraphStyleOptions}
+            value={selectedGraphType}
+            onChange={setSelectedGraphType}
+            placeholder="Select Graph Type"
+            // isLoading={loadingServices} do we need this?
+          />
+          {serviceError && <div className={styles.error}>{serviceError}</div>}
+        </div>
+
+        {/* Graph Creation Button (newly added) */}
+        <div className={styles.marginTop}>
+          <Button onClick={addGraph} disabled={addingGraph}>  
+            {addingGraph ? "Creating Graph..." : "Create Graph"}
           </Button>
-          {dashboardError && <div className={styles.error}>{dashboardError}</div>}
+          {graphError && <div className={styles.error}>{graphError}</div>} 
         </div>
       </div>
+      
+
+      {/* Display Graphs Setup (newly added) */} 
+      <div>
+        {/* TODO */}
+        {addedGraphs.length > 0 && (
+          <div>
+            <h4>Created Graphs:</h4>
+
+            {/* List All Graphs */}
+            {addedGraphs.map((graph, index) => (
+              <div key={index} className={styles.selectedMetricsContainer}> 
+                {/* className={styles.graphDetail} TODO */}
+                <h5>Graph {index + 1}: Type {graph.graphType.label} </h5>
+                <p>
+                  <strong>Metrics:</strong> {graph.metrics.join(", ")}
+                </p>
+              </div>
+            ))}
+
+            {/* Dashboard Creation Button */}
+            <div className={styles.marginTop}>
+              <Button onClick={createDashboard} disabled={creatingDashboard}>
+                {creatingDashboard ? "Creating Dashboard..." : "Create Dashboard"}
+              </Button>
+              {dashboardError && <div className={styles.error}>{dashboardError}</div>}
+            </div>
+          </div>
+
+          
+        )} 
+      </div>      
     </PluginPage>
   );
 }
