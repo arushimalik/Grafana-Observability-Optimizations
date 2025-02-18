@@ -236,7 +236,6 @@ function DashboardAssistant() {
             ))}
           </div>
         )}
-
         {/* Dashboard Creation */}
         <div className={styles.marginTop}>
           <Button onClick={createDashboard} disabled={creatingDashboard}>
