@@ -22,20 +22,18 @@ function DashboardAssistant() {
 
   const [selectedService, setSelectedService] = useState<{ label: string; value: string } | null>(null); 
   const [availableServices, setAvailableServices] = useState<{ label: string; value: string }[]>([]);
-  const [addedGraphs, setAddedGraphs] = useState<{ metrics: string[]; graphType: { label: string; value: string };}[]>([]); // newly added ; got rid of label: string; 
+  const [addedGraphs, setAddedGraphs] = useState<{ metrics: string[]; graphType: { label: string; value: string };}[]>([]); 
   const [selectedGraphType, setSelectedGraphType] = useState<{ label: string; value: string } >({ label: "Line", value: "line" }); 
   const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<Set<string>>(new Set());
-  const [metricGraphSettings, setMetricGraphSettings] = useState<Record<string, { type: string; group: string }>>({});
   const [creatingDashboard, setCreatingDashboard] = useState(false);
-  const [addingGraph, setAddingGraph] = useState(false); // newly added 
+  const [addingGraph, setAddingGraph] = useState(false); 
   const [dashboardError, setDashboardError] = useState<string | null>(null);
-  const [graphError, setGraphError] = useState<string | null>(null); // newly added 
+  const [graphError, setGraphError] = useState<string | null>(null); 
   const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  // const [selectedForBulkEdit, setSelectedForBulkEdit] = useState<Set<string>>(new Set());
   // TODO make this more organized
 
 
@@ -152,7 +150,6 @@ function DashboardAssistant() {
       </div>
     ));
 
-  // newly added function
   const addGraph = async () => { 
     if (selectedMetrics.size === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please select at least one metric and ensure the datasource is available.");
@@ -176,6 +173,16 @@ function DashboardAssistant() {
     }
   };
 
+  const removeMetricFromGraph = (graphIndex: number, metricToRemove: string) => {
+    setAddedGraphs((prevGraphs) =>
+      prevGraphs.map((graph, index) =>
+        index === graphIndex
+          ? { ...graph, metrics: graph.metrics.filter((m) => m !== metricToRemove) }
+          : graph
+      )
+    );
+  };
+  
   const createDashboard = async () => {
     if (addedGraphs.length === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please add at least one graph and ensure the datasource is available.");
@@ -248,7 +255,7 @@ function DashboardAssistant() {
           </div>
         )}
 
-        {/* Graph Type Selection (newly added ) */}
+        {/* Graph Type Selection */}
         <div className={styles.marginTop}>
           <h4>Select Graph Type:</h4>
           <Select 
@@ -261,31 +268,39 @@ function DashboardAssistant() {
           {serviceError && <div className={styles.error}>{serviceError}</div>}
         </div>
 
-        {/* Graph Creation Button (newly added) */}
+        {/* Graph Creation Button */}
         <div className={styles.marginTop}>
           <Button onClick={addGraph} disabled={addingGraph}>  
-            {addingGraph ? "Creating Graph..." : "Create Graph"}
+            {addingGraph ? "Creating Graph..." : "Add Graph"}
           </Button>
           {graphError && <div className={styles.error}>{graphError}</div>} 
         </div>
       </div>
       
 
-      {/* Display Graphs Setup (newly added) */} 
-      <div>
-        {/* TODO */}
+      {/* Display Graphs Setup */} 
+      <div className={styles.marginTop}>
         {addedGraphs.length > 0 && (
           <div>
-            <h4>Created Graphs:</h4>
-
             {/* List All Graphs */}
-            {addedGraphs.map((graph, index) => (
-              <div key={index} className={styles.selectedMetricsContainer}> 
-                {/* className={styles.graphDetail} TODO */}
-                <h5>Graph {index + 1}: Type {graph.graphType.label} </h5>
-                <p>
-                  <strong>Metrics:</strong> {graph.metrics.join(", ")}
-                </p>
+            {addedGraphs.map((graph, graphIndex) => (
+              <div key={graphIndex} className={styles.graphDetail}>
+                <h5>
+                  Graph {graphIndex + 1}: Type {graph.graphType.label}
+                </h5>
+                <div className={styles.metricsContainer}>
+                  {graph.metrics.map((metric, metricIndex) => (
+                    <div key={metricIndex} className={styles.metricBox}>
+                      <span>{metric}</span>
+                      <button
+                        className={styles.removeMetricButton}
+                        onClick={() => removeMetricFromGraph(graphIndex, metric)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
 
@@ -352,5 +367,42 @@ const getStyles = (theme: GrafanaTheme2) => ({
     border: 1px solid ${theme.colors.border.weak};
     border-radius: ${theme.shape.borderRadius()};
     background-color: ${theme.colors.background.secondary};
+  `,
+  createdGraphsContainer: css`
+    margin-top: ${theme.spacing(3)};
+  `,
+  graphDetail: css`
+    margin-bottom: ${theme.spacing(2)};
+    padding: ${theme.spacing(2)};
+    border: 1px solid ${theme.colors.border.weak};
+    border-radius: ${theme.shape.borderRadius()};
+    background-color: ${theme.colors.background.secondary};
+  `,
+  metricsContainer: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: ${theme.spacing(0.5)};
+    margin-top: ${theme.spacing(0.5)};
+  `,
+  metricBox: css`
+    display: flex;
+    align-items: center;
+    background-color: ${theme.colors.background.primary};
+    padding: ${theme.spacing(0)} ${theme.spacing(0.5)};
+    margin-right: ${theme.spacing(0.5)};
+    border-radius: ${theme.shape.borderRadius()};
+    font-size: 0.9em;
+  `,
+  removeMetricButton: css`
+    background: transparent;
+    border: none;
+    margin-left: ${theme.spacing(0.25)};
+    cursor: pointer;
+    font-weight: bold;
+    color: ${theme.colors.error.text};
+
+    &:hover {
+      color: ${theme.colors.error.border};
+    }
   `,
 });
