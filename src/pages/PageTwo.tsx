@@ -31,7 +31,7 @@ function DashboardAssistant() {
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  const [selectedForBulkEdit, setSelectedForBulkEdit] = useState<Set<string>>(new Set());
+  // const [selectedForBulkEdit, setSelectedForBulkEdit] = useState<Set<string>>(new Set());
 
 
   useEffect(() => {
@@ -213,54 +213,6 @@ function DashboardAssistant() {
           </div>
         )}
 
-        {/* Selected Metrics Section */}
-        {selectedForBulkEdit.size > 0 && (
-        <div className={styles.bulkActions}>
-          {/* Bulk Change Chart Style */}
-          <h4>Change Selected Metrics</h4>
-          <Select
-            options={TimeSeriesGraphStyleOptions}
-            placeholder="Change Chart Style"
-            onChange={(selected) => {
-              setMetricGraphSettings((prev) => {
-                const updatedSettings = { ...prev };
-                selectedForBulkEdit.forEach((metric) => {
-                  updatedSettings[metric] = { ...updatedSettings[metric], type: selected.value??"" };
-                });
-                return updatedSettings;
-              });
-            }}
-          />
-
-          {/* Bulk Grouping Input */}
-          <Input
-            placeholder="Enter Group ID"
-            onBlur={(event) => {
-              const groupValue = event.target.value.trim(); // Ensure trimmed input
-              setMetricGraphSettings((prev) => {
-                const updatedSettings = { ...prev };
-                selectedForBulkEdit.forEach((metric) => {
-                  updatedSettings[metric] = {
-                    ...updatedSettings[metric],
-                    group: groupValue, // Always assign a string, even if empty
-                  };
-                });
-                return updatedSettings;
-              });
-            }}
-          />
-
-
-          {/* Clear Selection Button */}
-          <Button
-            variant="secondary"
-            onClick={() => setSelectedForBulkEdit(new Set())}
-          >
-            Clear Selection
-          </Button>
-        </div>
-      )}
-
         {selectedMetrics.size > 0 && (
           <div className={styles.selectedMetricsContainer}>
             <h4>Configure Selected Metrics:</h4>
@@ -280,28 +232,6 @@ function DashboardAssistant() {
                   }
                 />
 
-                {/* Grouping Input */}
-                <Input
-                  placeholder="Group ID (optional)"
-                  value={metricGraphSettings[metric]?.group || ""}
-                  onChange={(event) =>
-                    setMetricGraphSettings((prev) => ({
-                      ...prev,
-                      [metric]: { ...prev[metric], group: event.target.value || null },
-                    }))
-                  }
-                />
-                <p>Select</p>
-                <Checkbox
-                  checked={selectedForBulkEdit.has(metric)}
-                  onChange={() => {
-                    setSelectedForBulkEdit((prev) => {
-                      const newSelection = new Set(prev);
-                      newSelection.has(metric) ? newSelection.delete(metric) : newSelection.add(metric);
-                      return newSelection;
-                    });
-                  }}
-                />
               </div>
             ))}
           </div>
