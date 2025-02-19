@@ -46,6 +46,8 @@ function DashboardAssistant() {
     null
   );
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  // New state to track edit mode (index of the graph being edited)
+  const [editingGraphIndex, setEditingGraphIndex] = useState<number | null>(null);
 
   // Fetch available services and datasource UID on mount
   useEffect(() => {
@@ -181,15 +183,29 @@ function DashboardAssistant() {
 
     try {
       const selectedMetricsArray = [...selectedMetrics];
-      setAddedGraphs((prevGraphs) => [
-        { metrics: selectedMetricsArray, graphType: selectedGraphType },
-        ...prevGraphs,
-      ]);
-      console.log(addedGraphs);
+      // If in edit mode, update the graph instead of adding a new one
+      if (editingGraphIndex !== null) {
+        setAddedGraphs((prevGraphs) =>
+          prevGraphs.map((graph, index) =>
+            index === editingGraphIndex
+              ? { ...graph, metrics: selectedMetricsArray, graphType: selectedGraphType }
+              : graph
+          )
+        );
+        // Exit edit mode after saving
+        setEditingGraphIndex(null);
+      } else {
+        setAddedGraphs((prevGraphs) => [
+          { metrics: selectedMetricsArray, graphType: selectedGraphType },
+          ...prevGraphs,
+        ]);
+      }
     } catch {
       setGraphError("Failed to add graph");
     } finally {
       setAddingGraph(false);
+      // clear selected metrics after saving
+      setSelectedMetrics(new Set());
     }
   };
 
@@ -201,6 +217,14 @@ function DashboardAssistant() {
           : graph
       )
     );
+  };
+
+  // Handle edit - preload the graph's metrics and type into the selectors and set edit mode
+  const editGraph = (graphIndex: number) => {
+    const graph = addedGraphs[graphIndex];
+    setSelectedMetrics(new Set(graph.metrics));
+    setSelectedGraphType(graph.graphType);
+    setEditingGraphIndex(graphIndex);
   };
 
   // Dashboard creation logic
@@ -250,7 +274,12 @@ function DashboardAssistant() {
   return (
     <PluginPage>
       <div>
-        <h3>Select metrics below to add them to your new dashboard.</h3>
+        {/* Adapt header based on edit mode */}
+        <h3>
+          {editingGraphIndex !== null
+            ? `Edit metrics for Graph ${editingGraphIndex + 1}`
+            : "Select metrics to add to your new dashboard:"}
+        </h3>
 
         {/* Service Selection */}
         <div className={styles.marginTop}>
@@ -267,7 +296,7 @@ function DashboardAssistant() {
         {/* Metrics Tree */}
         {metricsTree.length > 0 && (
           <div className={styles.marginTop}>
-            <h4>Select Metrics to Include in Dashboard:</h4>
+            {/* <h4>Select Metrics:</h4> */}
             <div>{renderTree(metricsTree)}</div>
           </div>
         )}
@@ -284,11 +313,28 @@ function DashboardAssistant() {
           {serviceError && <div className={styles.error}>{serviceError}</div>}
         </div>
 
-        {/* Graph Creation Button */}
+        {/* Graph Creation / Save Edit Buttons */}
         <div className={styles.marginTop}>
-          <Button onClick={addGraph} disabled={addingGraph}>
-            {addingGraph ? "Creating Graph..." : "Add Graph"}
-          </Button>
+          <div className={styles.editButtons}>
+            <Button onClick={addGraph} disabled={addingGraph}>
+              {addingGraph
+                ? "Processing..."
+                : editingGraphIndex !== null
+                ? "Save Edit"
+                : "Add Graph"}
+            </Button>
+            {editingGraphIndex !== null && (
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setEditingGraphIndex(null);
+                  setSelectedMetrics(new Set());
+                }}
+              >
+                Cancel Edit
+              </Button>
+            )}
+          </div>
           {graphError && <div className={styles.error}>{graphError}</div>}
         </div>
       </div>
@@ -299,9 +345,18 @@ function DashboardAssistant() {
           <div>
             {addedGraphs.map((graph, graphIndex) => (
               <div key={graphIndex} className={styles.graphDetail}>
-                <h5>
-                  Graph {graphIndex + 1}: Type {graph.graphType.label}
-                </h5>
+                <div className={styles.graphHeader}>
+                  <h5>
+                    Graph {graphIndex + 1}: Type {graph.graphType.label}
+                  </h5>
+                  <Button
+                    size="xs"
+                    variant="secondary"
+                    onClick={() => editGraph(graphIndex)}
+                  >
+                    Edit
+                  </Button>
+                </div>
                 <div className={styles.metricsContainer}>
                   {graph.metrics.map((metric, metricIndex) => (
                     <div key={metricIndex} className={styles.metricBox}>
@@ -355,15 +410,17 @@ const getStyles = (theme: GrafanaTheme2) => ({
   childNodes: css`
     margin-left: ${theme.spacing(3)};
   `,
-  createdGraphsContainer: css`
-    margin-top: ${theme.spacing(3)};
-  `,
   graphDetail: css`
     margin-bottom: ${theme.spacing(2)};
     padding: ${theme.spacing(2)};
     border: 1px solid ${theme.colors.border.weak};
     border-radius: ${theme.shape.borderRadius()};
     background-color: ${theme.colors.background.secondary};
+  `,
+  graphHeader: css`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
   `,
   metricsContainer: css`
     display: flex;
@@ -391,5 +448,11 @@ const getStyles = (theme: GrafanaTheme2) => ({
     &:hover {
       color: ${theme.colors.error.border};
     }
+  `,
+  editButtons: css`
+    display: flex;
+    align-items: center;
+    gap: ${theme.spacing(1)};
+    margin-top: ${theme.spacing(1)};
   `,
 });
