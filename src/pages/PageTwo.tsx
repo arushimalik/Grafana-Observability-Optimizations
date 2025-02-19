@@ -489,7 +489,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
   // Additional background when in edit mode
   editModeContainer: css`
-    background-color: rgba(0, 123, 255, 0.1);
+    background-color: rgba(0, 123, 255, 0.3);
   `,
   deleteButton: css`
     background: transparent;
