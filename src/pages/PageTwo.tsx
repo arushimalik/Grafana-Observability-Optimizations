@@ -24,6 +24,7 @@ const TimeSeriesGraphStyleOptions: GraphType[] = [
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
 
+<<<<<<< HEAD
   // State definitions
   const [selectedService, setSelectedService] = useState<GraphType | null>(null);
   const [availableServices, setAvailableServices] = useState<GraphType[]>([]);
@@ -34,10 +35,26 @@ function DashboardAssistant() {
     label: "Line",
     value: "line",
   });
+=======
+  type VisualizationType = "timeseries" | "barchart";
+
+  // A tree node representing a metric
+  type MetricNode = {
+    name: string;
+    fullPath: string;
+    children: MetricNode[];
+    isLeaf: boolean;
+  };
+
+  // State variables
+  const [selectedService, setSelectedService] = useState<{ label: string; value: string } | null>(null);
+  const [availableServices, setAvailableServices] = useState<{ label: string; value: string }[]>([]);
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
   const [selectedMetrics, setSelectedMetrics] = useState<Set<string>>(new Set());
+  const [selectedVisTypes, setSelectedVisTypes] = useState<Record<string, VisualizationType>>({}); // map from metric (leaf) id to the chosen visualization type
   const [creatingDashboard, setCreatingDashboard] = useState(false);
   const [addingGraph, setAddingGraph] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
@@ -47,19 +64,33 @@ function DashboardAssistant() {
   );
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
+<<<<<<< HEAD
   // Fetch available services and datasource UID on mount
+=======
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   useEffect(() => {
     const loadServices = async () => {
       setLoadingServices(true);
       const services = await fetchAvailableServices();
+<<<<<<< HEAD
+=======
+      console.log("Setting available services:", services);
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
       setAvailableServices(services);
       setLoadingServices(false);
     };
 
     loadServices();
+<<<<<<< HEAD
     fetchGraphiteDatasourceUid();
   }, []);
 
+=======
+    fetchGraphiteDatasourceUid(); // unique to PageTwo
+  }, []);
+
+  // Fetches the Graphite datasource UID from Grafana.
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   const fetchGraphiteDatasourceUid = async () => {
     try {
       const datasources = await getBackendSrv().get("/api/datasources");
@@ -120,6 +151,11 @@ function DashboardAssistant() {
   const getAllLeafKeys = (node: MetricNode): string[] =>
     node.isLeaf ? [node.fullPath] : node.children.flatMap(getAllLeafKeys);
 
+<<<<<<< HEAD
+=======
+  // Helper: Determines a node's selection status.
+  // Returns "none", "partial", or "full"
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   const getNodeSelectionStatus = (node: MetricNode): "none" | "partial" | "full" => {
     if (node.isLeaf) return selectedMetrics.has(node.fullPath) ? "full" : "none";
     const leaves = getAllLeafKeys(node);
@@ -127,6 +163,7 @@ function DashboardAssistant() {
     return selectedCount === 0 ? "none" : selectedCount === leaves.length ? "full" : "partial";
   };
 
+<<<<<<< HEAD
   const toggleNodeSelection = (node: MetricNode) => {
     setSelectedMetrics((prev) => {
       const newSelection = new Set(prev);
@@ -162,6 +199,99 @@ function DashboardAssistant() {
             indeterminate={getNodeSelectionStatus(node) === "partial"}
             onChange={() => toggleNodeSelection(node)}
           />
+=======
+  // Toggles selection for both leaves and parent nodes;
+  // Also updates the selectedVisTypes mapping: on selection, add a default ("timeseries") and on deselection, remove the mapping.
+  const toggleNodeSelection = (node: MetricNode) => {
+    const leaves = getAllLeafKeys(node);
+    const anySelected = leaves.some((leaf) => selectedMetrics.has(leaf));
+
+    if (anySelected) {
+      // Deselect: remove from selectedMetrics and remove their visualization types.
+      setSelectedMetrics((prev) => {
+        const newSet = new Set(prev);
+        leaves.forEach((leaf) => newSet.delete(leaf));
+        return newSet;
+      });
+      setSelectedVisTypes((prev) => {
+        const newMapping = { ...prev };
+        leaves.forEach((leaf) => {
+          delete newMapping[leaf];
+        });
+        return newMapping;
+      });
+    } else {
+      // Select: add to selectedMetrics and set default visualization type ("timeseries") if not set.
+      setSelectedMetrics((prev) => {
+        const newSet = new Set(prev);
+        leaves.forEach((leaf) => newSet.add(leaf));
+        return newSet;
+      });
+      setSelectedVisTypes((prev) => {
+        const newMapping = { ...prev };
+        leaves.forEach((leaf) => {
+          if (!newMapping[leaf]) {
+            newMapping[leaf] = "timeseries";
+          }
+        });
+        return newMapping;
+      });
+    }
+  };
+
+  // Handler: update the visualization type for a given metric.
+  const handleVisTypeChange = (metricId: string, visType: VisualizationType) => {
+    setSelectedVisTypes((prev) => ({
+      ...prev,
+      [metricId]: visType,
+    }));
+  };
+
+  // Options for visualization type selection.
+  const visOptions = [
+    { label: "Timeseries", value: "timeseries" },
+    { label: "Barchart", value: "barchart" },
+  ];
+
+  // Renders the metrics tree recursively.
+  const renderTree = (nodes: MetricNode[]) => {
+    return nodes.map((node) => {
+      const isExpanded = expandedNodes.has(node.fullPath);
+      const hasChildren = node.children.length > 0;
+      const status = getNodeSelectionStatus(node);
+
+      return (
+        <div key={node.fullPath} className={styles.treeNode}>
+          <div className={styles.nodeHeader}>
+            {hasChildren && (
+              <span onClick={() => toggleExpand(node.fullPath)} className={styles.expandIcon}>
+                {isExpanded ? <VscChevronDown /> : <VscChevronRight />}
+              </span>
+            )}
+            <Checkbox
+              label={node.name}
+              checked={status === "full"}
+              indeterminate={status === "partial"}
+              onChange={() => toggleNodeSelection(node)}
+            />
+            {/* If this is a leaf (ie a metric) and it’s selected, render the visualization type selector */}
+            {node.isLeaf && selectedMetrics.has(node.fullPath) && (
+              <div className={styles.visSelect}>
+                <Select
+                  options={visOptions}
+                  value={visOptions.find(
+                    (opt) => opt.value === (selectedVisTypes[node.fullPath] || "timeseries")
+                  )}
+                  onChange={(option) =>
+                    handleVisTypeChange(node.fullPath, option.value as VisualizationType)
+                  }
+                  width={150}
+                />
+              </div>
+            )}
+          </div>
+          {hasChildren && isExpanded && <div className={styles.childNodes}>{renderTree(node.children)}</div>}
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
         </div>
         {node.children.length > 0 && expandedNodes.has(node.fullPath) && (
           <div className={styles.childNodes}>{renderTree(node.children)}</div>
@@ -169,8 +299,13 @@ function DashboardAssistant() {
       </div>
     ));
 
+<<<<<<< HEAD
   // Graph addition and removal logic
   const addGraph = async () => {
+=======
+  // Creates a new dashboard using the selected metrics and visualization types.
+  const createDashboard = async () => {
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
     if (selectedMetrics.size === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please select at least one metric and ensure the datasource is available.");
       return;
@@ -228,6 +363,72 @@ function DashboardAssistant() {
       },
     }));
 
+<<<<<<< HEAD
+=======
+    // Construct panels based on each metric’s chosen visualization type.
+    const panels = selectedMetricsArray.map((metric, index) => {
+      // Get the visualization type (default to timeseries if not set)
+      const visType = selectedVisTypes[metric] || "timeseries";
+      const gridPos = { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 };
+
+      if (visType === "barchart") {
+        return {
+          title: metric,
+          type: "barchart", // assuming "barchart" is a valid panel type
+          datasource: {
+            type: "graphite",
+            uid: graphiteDatasourceUid,
+          },
+          targets: [{ target: metric, refId: "A" }],
+          id: index + 1,
+          gridPos,
+          options: {
+            // barchart-specific options (if needed) can be added here
+          },
+        };
+      } else {
+        return {
+          title: metric,
+          type: "timeseries",
+          datasource: {
+            type: "graphite",
+            uid: graphiteDatasourceUid,
+          },
+          targets: [{ target: metric, refId: "A" }],
+          id: index + 1,
+          gridPos,
+          fieldConfig: {
+            defaults: {
+              custom: {
+                drawStyle: "line",
+                lineInterpolation: "linear",
+                showPoints: "auto",
+                lineWidth: 1,
+                fillOpacity: 0,
+                gradientMode: "none",
+              },
+              color: {
+                mode: "palette-classic",
+              },
+              thresholds: {
+                mode: "absolute",
+                steps: [
+                  { color: "green", value: null },
+                  { color: "red", value: 80 },
+                ],
+              },
+            },
+            overrides: [],
+          },
+          options: {
+            tooltip: { mode: "single", sort: "none" },
+            legend: { showLegend: true, displayMode: "list", placement: "bottom" },
+          },
+        };
+      }
+    });
+
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
     const newDashboard = {
       dashboard: {
         title: `${selectedService?.label} Metrics Dashboard`,
@@ -245,6 +446,19 @@ function DashboardAssistant() {
     } finally {
       setCreatingDashboard(false);
     }
+  };
+
+  // Toggles the expansion of a node (for showing/hiding its children).
+  const toggleExpand = (nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(nodeId)) {
+        newSet.delete(nodeId);
+      } else {
+        newSet.add(nodeId);
+      }
+      return newSet;
+    });
   };
 
   return (
@@ -355,6 +569,7 @@ const getStyles = (theme: GrafanaTheme2) => ({
   childNodes: css`
     margin-left: ${theme.spacing(3)};
   `,
+<<<<<<< HEAD
   createdGraphsContainer: css`
     margin-top: ${theme.spacing(3)};
   `,
@@ -391,5 +606,10 @@ const getStyles = (theme: GrafanaTheme2) => ({
     &:hover {
       color: ${theme.colors.error.border};
     }
+=======
+  visSelect: css`
+    margin-left: ${theme.spacing(1)};
+    width: 150px;
+>>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   `,
 });
