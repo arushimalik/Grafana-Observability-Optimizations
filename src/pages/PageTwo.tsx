@@ -46,7 +46,6 @@ function DashboardAssistant() {
     null
   );
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
-  // New state to track edit mode (index of the graph being edited)
   const [editingGraphIndex, setEditingGraphIndex] = useState<number | null>(null);
 
   // Fetch available services and datasource UID on mount
@@ -229,7 +228,7 @@ function DashboardAssistant() {
     }
   };
 
-  // Handle edit: pre-load the graph's metrics and type into the selectors and set edit mode.
+  // Handle edit: pre-load the graph's metrics and type into the selectors and set edit mode
   const editGraph = (graphIndex: number) => {
     const graph = addedGraphs[graphIndex];
     setSelectedMetrics(new Set(graph.metrics));
