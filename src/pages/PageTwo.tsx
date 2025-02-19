@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { css } from "@emotion/css";
+import { css, cx } from "@emotion/css";
 import { GrafanaTheme2 } from "@grafana/data";
 import { useStyles2, Select, Checkbox, Button } from "@grafana/ui";
 import { PluginPage, getBackendSrv } from "@grafana/runtime";
@@ -204,7 +204,7 @@ function DashboardAssistant() {
       setGraphError("Failed to add graph");
     } finally {
       setAddingGraph(false);
-      // clear selected metrics after saving
+      //  clear selected metrics after saving
       setSelectedMetrics(new Set());
     }
   };
@@ -219,7 +219,7 @@ function DashboardAssistant() {
     );
   };
 
-  // Handle edit - preload the graph's metrics and type into the selectors and set edit mode
+  // Handle edit: pre-load the graph's metrics and type into the selectors and set edit mode.
   const editGraph = (graphIndex: number) => {
     const graph = addedGraphs[graphIndex];
     setSelectedMetrics(new Set(graph.metrics));
@@ -273,7 +273,12 @@ function DashboardAssistant() {
 
   return (
     <PluginPage>
-      <div>
+      <div
+        className={cx(
+          styles.selectorContainer,
+          editingGraphIndex !== null && styles.editModeContainer
+        )}
+      >
         {/* Adapt header based on edit mode */}
         <h3>
           {editingGraphIndex !== null
@@ -296,7 +301,6 @@ function DashboardAssistant() {
         {/* Metrics Tree */}
         {metricsTree.length > 0 && (
           <div className={styles.marginTop}>
-            {/* <h4>Select Metrics:</h4> */}
             <div>{renderTree(metricsTree)}</div>
           </div>
         )}
@@ -454,5 +458,14 @@ const getStyles = (theme: GrafanaTheme2) => ({
     align-items: center;
     gap: ${theme.spacing(1)};
     margin-top: ${theme.spacing(1)};
+  `,
+  // Base container for the selectors
+  selectorContainer: css`
+    padding: ${theme.spacing(2)};
+    transition: background-color 0.3s ease;
+  `,
+  // Additional background when in edit mode
+  editModeContainer: css`
+    background-color: rgba(0, 123, 255, 0.3);
   `,
 });
