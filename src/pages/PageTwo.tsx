@@ -204,7 +204,7 @@ function DashboardAssistant() {
       setGraphError("Failed to add graph");
     } finally {
       setAddingGraph(false);
-      //  clear selected metrics after saving
+      // Clear selected metrics after saving
       setSelectedMetrics(new Set());
     }
   };
@@ -217,6 +217,16 @@ function DashboardAssistant() {
           : graph
       )
     );
+  };
+
+  // Delete entire graph from the list
+  const deleteGraph = (graphIndex: number) => {
+    setAddedGraphs((prevGraphs) => prevGraphs.filter((_, index) => index !== graphIndex));
+    // If the deleted graph was being edited then exit edit mode
+    if (editingGraphIndex === graphIndex) {
+      setEditingGraphIndex(null);
+      setSelectedMetrics(new Set());
+    }
   };
 
   // Handle edit: pre-load the graph's metrics and type into the selectors and set edit mode.
@@ -353,13 +363,23 @@ function DashboardAssistant() {
                   <h5>
                     Graph {graphIndex + 1}: Type {graph.graphType.label}
                   </h5>
-                  <Button
-                    size="xs"
-                    variant="secondary"
-                    onClick={() => editGraph(graphIndex)}
-                  >
-                    Edit
-                  </Button>
+                  <div className={styles.graphActions}>
+                    <Button
+                      size="xs"
+                      variant="secondary"
+                      onClick={() => editGraph(graphIndex)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="xs"
+                      variant="destructive"
+                      onClick={() => deleteGraph(graphIndex)}
+                      className={styles.deleteButton}
+                    >
+                      ×
+                    </Button>
+                  </div>
                 </div>
                 <div className={styles.metricsContainer}>
                   {graph.metrics.map((metric, metricIndex) => (
@@ -426,6 +446,10 @@ const getStyles = (theme: GrafanaTheme2) => ({
     justify-content: space-between;
     align-items: center;
   `,
+  graphActions: css`
+    display: flex;
+    gap: ${theme.spacing(1)};
+  `,
   metricsContainer: css`
     display: flex;
     flex-wrap: wrap;
@@ -466,6 +490,18 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
   // Additional background when in edit mode
   editModeContainer: css`
-    background-color: rgba(0, 123, 255, 0.3);
+    background-color: rgba(0, 123, 255, 0.1);
+  `,
+  deleteButton: css`
+    background: transparent;
+    border: none;
+    color: ${theme.colors.error.text};
+    font-size: 1.2em;
+    line-height: 1;
+    cursor: pointer;
+
+    &:hover {
+      color: ${theme.colors.error.border};
+    }
   `,
 });
