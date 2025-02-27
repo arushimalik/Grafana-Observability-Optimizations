@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
-import {useStyles2, Select } from '@grafana/ui';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
 
@@ -10,6 +9,7 @@ import { Option, DashboardResponse, MetricComparison, suffixSet } from '../const
 import { fetchAvailableServices } from "../utils/page_utils";
 
 import { VscChevronDown, VscChevronRight, VscIndent } from "react-icons/vsc";
+import { useStyles2, Select, Button } from '@grafana/ui';
 
 function PageOne() {
   const styles = useStyles2(getStyles);
@@ -24,6 +24,30 @@ function PageOne() {
   const [serviceError,] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [metricComparison, setMetricComparison] = useState<MetricComparison | null>(null);
+  const [isExpanded, setIsExpanded] = useState<{ [key: string]: boolean }>({});  
+  
+  const toggleAll = () => {
+    if (!metricComparison) return;
+    const usedTree = formatAsTree(metricComparison.usedMetrics);
+    const unusedTree = formatAsTree(metricComparison.unusedMetrics);
+    const allExpandableNodeIds = [...getAllExpandableNodeIds(usedTree), ...getAllExpandableNodeIds(unusedTree)];
+    // see which nodes are expanded:
+    const currentlyAllExpanded = allExpandableNodeIds.length > 0 && allExpandableNodeIds.every(id => isExpanded[id]);
+    
+    setIsExpanded((prev) => {
+      const newState = { ...prev };
+      for (const nodeId of allExpandableNodeIds) {
+        newState[nodeId] = !currentlyAllExpanded;
+      }
+      return newState;
+    });
+  };
+ const toggleExpansion = (nodeId: string) => {
+  setIsExpanded((prev) => ({
+    ...prev,
+    [nodeId]: !prev[nodeId],
+  }));
+ };
 
   useEffect(() => {
     const loadServices = async () => {
@@ -236,40 +260,59 @@ function PageOne() {
   
 
   // Tree Node Component in React (for rendering expandable lists)
-  const TreeNode = ({ label, children }: { label: string; children?: React.ReactNode }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-  
-    const toggleExpansion = () => {
-      setIsExpanded(!isExpanded);
-    };
-  
+  const TreeNode = ({ label, nodeId, children }: { label: string; nodeId: string; children?: React.ReactNode }) => {
+    const expanded = isExpanded[nodeId] || false;
+    const hasChildren = !!children;
     return (
       <div style={{ marginLeft: '20px' }}>
-        <div
-          onClick={toggleExpansion}
-          style={{ cursor: 'pointer', fontWeight: children ? 'bold' : 'normal' }}
-        >
-          {children ? (isExpanded ? <VscChevronDown /> : <VscChevronRight />) : <VscIndent />} {label}
+        <div onClick={() => hasChildren && toggleExpansion(nodeId)} style={{ cursor: hasChildren ? 'pointer' : 'default', fontWeight: hasChildren ? 'bold' : 'normal' }}>
+          {hasChildren ? (expanded ? <VscChevronDown /> : <VscChevronRight />) : <VscIndent />} {label}
         </div>
-        {isExpanded && children && <div>{children}</div>}
+        {expanded && hasChildren && <div>{children}</div>}
       </div>
     );
   };
-  const Tree = ({ data }: { data: Record<string, any> }) => {
-    const renderTree = (node: Record<string, any>): React.ReactNode => {
-      return Object.keys(node).map((key) => (
-        <TreeNode key={key} label={key}>
-          {node[key] !== null && typeof node[key] === 'object' ? renderTree(node[key]) : null}
-        </TreeNode>
-      ));
+  const Tree = ({ data, parentId = '' }: { data: Record<string, any>; parentId?: string }) => {
+    const renderTree = (node: Record<string, any>, path: string): React.ReactNode => {
+      return Object.keys(node).map((key) => {
+        const nodeId = path === '' ? `.${key}` : `${path}.${key}`;
+  
+        return (
+          <TreeNode key={nodeId} label={key} nodeId={nodeId}>
+            {node[key] !== null && typeof node[key] === 'object' ? renderTree(node[key], nodeId) : null}
+          </TreeNode>
+        );
+      });
     };
   
-    return <div>{renderTree(data)}</div>;
+    return <div>{renderTree(data, parentId)}</div>;
   };
+  function getAllExpandableNodeIds(tree: Record<string, any>, parentId = ''): string[] {
+    let ids: string[] = [];
+    for (const key in tree) {
+      // if parentId is empty, mimic an id like ".key"
+      const nodeId = parentId === '' ? `.${key}` : `${parentId}.${key}`;
+      const hasChildren = tree[key] && typeof tree[key] === 'object' && Object.keys(tree[key]).length > 0;
 
+      if (hasChildren) {
+        ids.push(nodeId);
+        ids = ids.concat(getAllExpandableNodeIds(tree[key], nodeId));
+      }
+    }
+    return ids;
+  }
+  let globalExpanded = false;
+  if (metricComparison) {
+    const usedTree = formatAsTree(metricComparison.usedMetrics);
+    const unusedTree = formatAsTree(metricComparison.unusedMetrics);
+    const allNodeIds = [...getAllExpandableNodeIds(usedTree), ...getAllExpandableNodeIds(unusedTree)];
+    // if every node says true then all are expanded, set globalExpanded
+    globalExpanded = allNodeIds.length > 0 && allNodeIds.every(id => isExpanded[id]);
+  }
   return (
     <PluginPage>
       <div data-testid={testIds.pageOne.container}>
+      <Button onClick={toggleAll}>{globalExpanded ? 'Collapse All' : 'Expand All'}</Button>
         <div className={styles.marginTop}>
           <Select
             options={availableServices}
