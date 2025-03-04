@@ -18,3 +18,8 @@ datasources:
     type: graphite
     access: proxy
     default: false
+  - name: multicloud-datasource
+    url: http://multicloud-datasource
+    type: graphite
+    access: proxy
+    default: true

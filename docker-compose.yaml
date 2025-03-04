@@ -54,6 +54,8 @@ services:
   graphite-linde:
     image: graphiteapp/graphite-statsd
 
+  multicloud-datasource:
+    image: graphiteapp/graphite-statsd
   # service-metric-simulator is a Go application I wrote to emit mock Graphite
   # metrics to multiple Graphite instances. It allows you to define mock
   # microservices with sets of mock metrics.
