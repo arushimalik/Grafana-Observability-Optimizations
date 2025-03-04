@@ -24,18 +24,6 @@ const TimeSeriesGraphStyleOptions: GraphType[] = [
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
 
-<<<<<<< HEAD
-  // State definitions
-  const [selectedService, setSelectedService] = useState<GraphType | null>(null);
-  const [availableServices, setAvailableServices] = useState<GraphType[]>([]);
-  const [addedGraphs, setAddedGraphs] = useState<
-    { metrics: string[]; graphType: GraphType }[]
-  >([]);
-  const [selectedGraphType, setSelectedGraphType] = useState<GraphType>({
-    label: "Line",
-    value: "line",
-  });
-=======
   type VisualizationType = "timeseries" | "barchart";
 
   // A tree node representing a metric
@@ -49,7 +37,6 @@ function DashboardAssistant() {
   // State variables
   const [selectedService, setSelectedService] = useState<{ label: string; value: string } | null>(null);
   const [availableServices, setAvailableServices] = useState<{ label: string; value: string }[]>([]);
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);

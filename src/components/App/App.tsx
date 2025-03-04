@@ -4,6 +4,7 @@ import { AppRootProps } from '@grafana/data';
 import { ROUTES } from '../../constants';
 const PageOne = React.lazy(() => import('../../pages/PageOne'));
 const PageTwo = React.lazy(() => import('../../pages/PageTwo'));
+const MultiCloud = React.lazy(() => import('../../pages/MultiCloud'));
 
 
 function App(props: AppRootProps) {
@@ -12,6 +13,7 @@ function App(props: AppRootProps) {
 
       <Route path={ROUTES.Unused} element={<PageOne />} />
       <Route path={ROUTES.PageTwo} element={<PageTwo />} />
+      <Route path={ROUTES.MultiCloud} element={<MultiCloud />} />
 
     </Routes>
   );

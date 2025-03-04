@@ -27,7 +27,7 @@ services:
       GF_LOG_FILTERS: plugin.hmcclinic-skeleton-app:debug
       GF_LOG_LEVEL: debug
       GF_DATAPROXY_LOGGING: 1
-      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: hmcclinic-skeleton-app
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "hmcclinic-skeleton-app"
   graphite-atwood:
     image: graphiteapp/graphite-statsd
     # Since Docker containers can communicate over an internal network, you only

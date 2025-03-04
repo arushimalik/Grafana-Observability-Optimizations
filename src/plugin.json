@@ -24,14 +24,14 @@
       "type": "page",
       "icon": "cog",
       "name": "Configuration",
-      "path": "/plugins/%PLUGIN_ID%",
+      "path": "/plugins/hmcclinic-skeleton-app",
       "role": "Admin",
       "addToNav": true
     }, 
     {
       "type": "page",
       "name": "Unused Metrics Page",
-      "path": "/a/%PLUGIN_ID%/unused",
+      "path": "/a/hmcclinic-skeleton-app/unused",
       "role": "Admin",
       "addToNav": true,
       "defaultNav": false
@@ -39,7 +39,15 @@
     {
       "type": "page",
       "name": "Dashboard Assistant Page",
-      "path": "/a/%PLUGIN_ID%/pageTwo",
+      "path": "/a/hmcclinic-skeleton-app/pageTwo",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
+    },
+    {
+      "type": "page",
+      "name": "Multi Cloud Page",
+      "path": "/a/hmcclinic-skeleton-app/multi",
       "role": "Admin",
       "addToNav": true,
       "defaultNav": false

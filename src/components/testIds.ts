@@ -12,4 +12,8 @@ export const testIds = {
     container: 'data-testid pg-two-container',
     navigateToFour: 'data-testid navigate-to-four',
   },
+  pageThree: {
+    container: 'data-testid pg-three-container',
+    navigateToFour: 'data-testid navigate-to-four',
+  },
 };
