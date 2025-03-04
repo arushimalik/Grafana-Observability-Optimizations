@@ -148,6 +148,33 @@ function DashboardAssistant() {
     });
   };
 
+  // functions to expand or collapse all nodes
+  const getAllNodePaths = (nodes: MetricNode[]): string[] => {
+    let allPaths: string[] = [];
+    nodes.forEach(node => {
+      if (!node.isLeaf) {
+        allPaths.push(node.fullPath);
+        allPaths = [...allPaths, ...getAllNodePaths(node.children)];
+      }
+    });
+    return allPaths;
+  };
+
+  const expandAllNodes = () => {
+    const allPaths = getAllNodePaths(metricsTree);
+    setExpandedNodes(new Set(allPaths));
+  };
+
+  const collapseAllNodes = () => {
+    setExpandedNodes(new Set());
+  };
+
+  // Determine if all nodes are expanded
+  const areAllNodesExpanded = () => {
+    const allPaths = getAllNodePaths(metricsTree);
+    return allPaths.length > 0 && allPaths.every(path => expandedNodes.has(path));
+  };
+
   const renderTree = (nodes: MetricNode[]): JSX.Element[] =>
     nodes.map((node) => (
       <div key={node.fullPath} className={styles.treeNode}>
@@ -310,6 +337,17 @@ function DashboardAssistant() {
         {/* Metrics Tree */}
         {metricsTree.length > 0 && (
           <div className={styles.marginTop}>
+            {/* Expand/Collapse All Button */}
+            <div className={styles.expandCollapseContainer}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={areAllNodesExpanded() ? collapseAllNodes : expandAllNodes}
+                className={styles.expandCollapseButton}
+              >
+                {areAllNodesExpanded() ? "Collapse All" : "Expand All"}
+              </Button>
+            </div>
             <div>{renderTree(metricsTree)}</div>
           </div>
         )}
@@ -502,5 +540,12 @@ const getStyles = (theme: GrafanaTheme2) => ({
     &:hover {
       color: ${theme.colors.error.border};
     }
+  `,
+
+  expandCollapseContainer: css`
+    margin-bottom: ${theme.spacing(1)};
+  `,
+  expandCollapseButton: css`
+    margin-left: 0;
   `,
 });
