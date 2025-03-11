@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { css } from '@emotion/css';
 import { GrafanaTheme2 } from '@grafana/data';
-import {useStyles2, Select } from '@grafana/ui';
+import { useStyles2, Select, Button } from '@grafana/ui';
 import { testIds } from '../components/testIds';
 import { PluginPage, getBackendSrv } from '@grafana/runtime';
 
@@ -24,6 +24,8 @@ function PageOne() {
   const [serviceError,] = useState<string | null>(null);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [metricComparison, setMetricComparison] = useState<MetricComparison | null>(null);
+  // New state for tracking expanded nodes
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const loadServices = async () => {
@@ -215,6 +217,7 @@ function PageOne() {
     });
     return formattedMetrics;
   };
+  
   // take in a flat list of metrics and format them as a tree structure
   const formatAsTree = (metrics: string[]): Record<string, any> => {
     const tree: Record<string, any> = {};
@@ -234,34 +237,116 @@ function PageOne() {
     return tree;
   };
   
+  // Functions for expand/collapse functionality
+  const toggleExpand = (nodeId: string) => {
+    setExpandedNodes((prev) => {
+      const newSet = new Set(prev);
+      newSet.has(nodeId) ? newSet.delete(nodeId) : newSet.add(nodeId);
+      return newSet;
+    });
+  };
 
-  // Tree Node Component in React (for rendering expandable lists)
-  const TreeNode = ({ label, children }: { label: string; children?: React.ReactNode }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
+  // Helper functions to get all node paths across both trees
+  const getAllNodePaths = () => {
+    if (!metricComparison) return [];
+    
+    const usedMetricsTree = formatAsTree(metricComparison.usedMetrics);
+    const unusedMetricsTree = formatAsTree(metricComparison.unusedMetrics);
+    
+    return [
+      ...getNodePaths(usedMetricsTree),
+      ...getNodePaths(unusedMetricsTree)
+    ];
+  };
   
-    const toggleExpansion = () => {
-      setIsExpanded(!isExpanded);
-    };
-  
+  const getNodePaths = (node: Record<string, any>, currentPath: string = ''): string[] => {
+    let allPaths: string[] = [];
+    
+    for (const key in node) {
+      const newPath = currentPath ? `${currentPath}.${key}` : key;
+      
+      if (node[key] !== null && typeof node[key] === 'object') {
+        // This is a branch node, add it to paths and continue traversing
+        allPaths.push(newPath);
+        allPaths = [...allPaths, ...getNodePaths(node[key], newPath)];
+      }
+    }
+    
+    return allPaths;
+  };
+
+  // Single expand/collapse function that affects both trees
+  const toggleAllNodes = () => {
+    const allPaths = getAllNodePaths();
+    const allExpanded = areAllNodesExpanded();
+    
+    if (allExpanded) {
+      // Collapse all
+      setExpandedNodes(new Set());
+    } else {
+      // Expand all
+      setExpandedNodes(new Set(allPaths));
+    }
+  };
+
+  // Check if all nodes are expanded
+  const areAllNodesExpanded = () => {
+    const allPaths = getAllNodePaths();
+    return allPaths.length > 0 && allPaths.every(path => expandedNodes.has(path));
+  };
+
+  // Tree node component
+  const TreeNode = ({ 
+    nodePath,
+    label, 
+    children,
+    isExpanded,
+    onToggle
+  }: { 
+    nodePath: string;
+    label: string; 
+    children?: React.ReactNode;
+    isExpanded: boolean;
+    onToggle: (nodePath: string) => void;
+  }) => {
     return (
-      <div style={{ marginLeft: '20px' }}>
-        <div
-          onClick={toggleExpansion}
-          style={{ cursor: 'pointer', fontWeight: children ? 'bold' : 'normal' }}
-        >
-          {children ? (isExpanded ? <VscChevronDown /> : <VscChevronRight />) : <VscIndent />} {label}
+      <div className={styles.treeNode}>
+        <div className={styles.nodeHeader} onClick={() => children && onToggle(nodePath)}>
+          {children ? (
+            <span className={styles.expandIcon}>
+              {isExpanded ? <VscChevronDown /> : <VscChevronRight />}
+            </span>
+          ) : (
+            <span className={styles.indentIcon}><VscIndent /></span>
+          )}
+          <span>{label}</span>
         </div>
-        {isExpanded && children && <div>{children}</div>}
+        {isExpanded && children && <div className={styles.childNodes}>{children}</div>}
       </div>
     );
   };
-  const Tree = ({ data }: { data: Record<string, any> }) => {
-    const renderTree = (node: Record<string, any>): React.ReactNode => {
-      return Object.keys(node).map((key) => (
-        <TreeNode key={key} label={key}>
-          {node[key] !== null && typeof node[key] === 'object' ? renderTree(node[key]) : null}
-        </TreeNode>
-      ));
+
+  // Tree component
+  const Tree = ({ data, basePath = '' }: { data: Record<string, any>; basePath?: string }) => {
+    const renderTree = (node: Record<string, any>, currentPath: string = basePath): React.ReactNode => {
+      return Object.keys(node).map((key) => {
+        const nodePath = currentPath ? `${currentPath}.${key}` : key;
+        const isExpanded = expandedNodes.has(nodePath);
+        
+        return (
+          <TreeNode 
+            key={nodePath} 
+            label={key} 
+            nodePath={nodePath}
+            isExpanded={isExpanded}
+            onToggle={toggleExpand}
+          >
+            {node[key] !== null && typeof node[key] === 'object' 
+              ? renderTree(node[key], nodePath) 
+              : null}
+          </TreeNode>
+        );
+      });
     };
   
     return <div>{renderTree(data)}</div>;
@@ -293,28 +378,42 @@ function PageOne() {
         </div>
 
         {metricComparison && (
-          <div className={`${styles.metricComparison} ${styles.responsive}`}>
-            <div className={styles.metricsColumn}>
-              <h4><strong>Used Metrics:</strong></h4>
-              <p>{metricComparison.usedMetrics.length} metrics</p>
-              <ul>
-                {metricComparison.usedMetrics && metricComparison.usedMetrics.length > 0 ? (
-                  <Tree data={formatAsTree(metricComparison.usedMetrics)} />
-                ) : (
-                  <p>No used metrics.</p>
-                )}
-              </ul>
+          <div className={styles.metricComparison}>
+            {/* Single expand/collapse button for both trees */}
+            <div className={styles.expandCollapseContainer}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={toggleAllNodes}
+                className={styles.expandCollapseButton}
+              >
+                {areAllNodesExpanded() ? "Collapse All" : "Expand All"}
+              </Button>
             </div>
-            <div className={styles.metricsColumn}>
-              <h4><strong>Unused Metrics:</strong></h4>
-              <p>{metricComparison.unusedMetrics.length} metrics</p>
-              <ul>
-                {metricComparison.unusedMetrics && metricComparison.unusedMetrics.length > 0 ? (
-                  <Tree data={formatAsTree(metricComparison.unusedMetrics)} />
-                ) : (
-                  <p>No unused metrics.</p>
-                )}
-              </ul>
+            
+            <div className={`${styles.metricsColumns} ${styles.responsive}`}>
+              <div className={styles.metricsColumn}>
+                <h4><strong>Used Metrics:</strong></h4>
+                <p>{metricComparison.usedMetrics.length} metrics</p>
+                <div>
+                  {metricComparison.usedMetrics && metricComparison.usedMetrics.length > 0 ? (
+                    <Tree data={formatAsTree(metricComparison.usedMetrics)} />
+                  ) : (
+                    <p>No used metrics.</p>
+                  )}
+                </div>
+              </div>
+              <div className={styles.metricsColumn}>
+                <h4><strong>Unused Metrics:</strong></h4>
+                <p>{metricComparison.unusedMetrics.length} metrics</p>
+                <div>
+                  {metricComparison.unusedMetrics && metricComparison.unusedMetrics.length > 0 ? (
+                    <Tree data={formatAsTree(metricComparison.unusedMetrics)} />
+                  ) : (
+                    <p>No unused metrics.</p>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         )}
@@ -325,7 +424,7 @@ function PageOne() {
 
 export default PageOne;
 
-// Styles
+// Styles - updated to include the tree-related styles
 const getStyles = (theme: GrafanaTheme2) => ({
   marginTop: css`
     margin-top: ${theme.spacing(2)};
@@ -336,6 +435,8 @@ const getStyles = (theme: GrafanaTheme2) => ({
   `,
   metricComparison: css`
     margin-top: ${theme.spacing(1)};
+  `,
+  metricsColumns: css`
     display: flex;
     gap: ${theme.spacing(4)};
     align-items: flex-start;
@@ -350,5 +451,34 @@ const getStyles = (theme: GrafanaTheme2) => ({
     @media (max-width: 768px) {
       flex-direction: column;
     }
+  `,
+  // Tree-related styles
+  treeNode: css`
+    margin-left: ${theme.spacing(1)};
+  `,
+  nodeHeader: css`
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    padding: ${theme.spacing(0.5)} 0;
+  `,
+  expandIcon: css`
+    margin-right: ${theme.spacing(1)};
+    display: flex;
+  `,
+  indentIcon: css`
+    margin-right: ${theme.spacing(1)};
+    display: flex;
+    opacity: 0.5;
+  `,
+  childNodes: css`
+    margin-left: ${theme.spacing(2)};
+  `,
+  expandCollapseContainer: css`
+    margin-bottom: ${theme.spacing(1)};
+  `,
+  expandCollapseButton: css`
+    margin-top: 15px;
+    margin-left: 0;
   `,
 });
