@@ -51,33 +51,20 @@ function DashboardAssistant() {
   );
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
 
-<<<<<<< HEAD
-  // Fetch available services and datasource UID on mount
-=======
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   useEffect(() => {
     const loadServices = async () => {
       setLoadingServices(true);
       const services = await fetchAvailableServices();
-<<<<<<< HEAD
-=======
       console.log("Setting available services:", services);
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
       setAvailableServices(services);
       setLoadingServices(false);
     };
 
     loadServices();
-<<<<<<< HEAD
-    fetchGraphiteDatasourceUid();
-  }, []);
-
-=======
     fetchGraphiteDatasourceUid(); // unique to PageTwo
   }, []);
 
   // Fetches the Graphite datasource UID from Grafana.
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   const fetchGraphiteDatasourceUid = async () => {
     try {
       const datasources = await getBackendSrv().get("/api/datasources");
@@ -138,11 +125,8 @@ function DashboardAssistant() {
   const getAllLeafKeys = (node: MetricNode): string[] =>
     node.isLeaf ? [node.fullPath] : node.children.flatMap(getAllLeafKeys);
 
-<<<<<<< HEAD
-=======
   // Helper: Determines a node's selection status.
   // Returns "none", "partial", or "full"
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   const getNodeSelectionStatus = (node: MetricNode): "none" | "partial" | "full" => {
     if (node.isLeaf) return selectedMetrics.has(node.fullPath) ? "full" : "none";
     const leaves = getAllLeafKeys(node);
@@ -150,43 +134,6 @@ function DashboardAssistant() {
     return selectedCount === 0 ? "none" : selectedCount === leaves.length ? "full" : "partial";
   };
 
-<<<<<<< HEAD
-  const toggleNodeSelection = (node: MetricNode) => {
-    setSelectedMetrics((prev) => {
-      const newSelection = new Set(prev);
-      const leaves = getAllLeafKeys(node);
-      const anySelected = leaves.some((leaf) => newSelection.has(leaf));
-      leaves.forEach((leaf) =>
-        anySelected ? newSelection.delete(leaf) : newSelection.add(leaf)
-      );
-      return newSelection;
-    });
-  };
-
-  const toggleExpand = (nodeId: string) => {
-    setExpandedNodes((prev) => {
-      const newSet = new Set(prev);
-      newSet.has(nodeId) ? newSet.delete(nodeId) : newSet.add(nodeId);
-      return newSet;
-    });
-  };
-
-  const renderTree = (nodes: MetricNode[]): JSX.Element[] =>
-    nodes.map((node) => (
-      <div key={node.fullPath} className={styles.treeNode}>
-        <div className={styles.nodeHeader}>
-          {node.children.length > 0 && (
-            <span onClick={() => toggleExpand(node.fullPath)} className={styles.expandIcon}>
-              {expandedNodes.has(node.fullPath) ? <VscChevronDown /> : <VscChevronRight />}
-            </span>
-          )}
-          <Checkbox
-            label={node.name}
-            checked={getNodeSelectionStatus(node) === "full"}
-            indeterminate={getNodeSelectionStatus(node) === "partial"}
-            onChange={() => toggleNodeSelection(node)}
-          />
-=======
   // Toggles selection for both leaves and parent nodes;
   // Also updates the selectedVisTypes mapping: on selection, add a default ("timeseries") and on deselection, remove the mapping.
   const toggleNodeSelection = (node: MetricNode) => {
@@ -278,7 +225,6 @@ function DashboardAssistant() {
             )}
           </div>
           {hasChildren && isExpanded && <div className={styles.childNodes}>{renderTree(node.children)}</div>}
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
         </div>
         {node.children.length > 0 && expandedNodes.has(node.fullPath) && (
           <div className={styles.childNodes}>{renderTree(node.children)}</div>
@@ -286,13 +232,8 @@ function DashboardAssistant() {
       </div>
     ));
 
-<<<<<<< HEAD
-  // Graph addition and removal logic
-  const addGraph = async () => {
-=======
   // Creates a new dashboard using the selected metrics and visualization types.
   const createDashboard = async () => {
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
     if (selectedMetrics.size === 0 || !graphiteDatasourceUid) {
       setDashboardError("Please select at least one metric and ensure the datasource is available.");
       return;
@@ -350,8 +291,6 @@ function DashboardAssistant() {
       },
     }));
 
-<<<<<<< HEAD
-=======
     // Construct panels based on each metric’s chosen visualization type.
     const panels = selectedMetricsArray.map((metric, index) => {
       // Get the visualization type (default to timeseries if not set)
@@ -415,7 +354,6 @@ function DashboardAssistant() {
       }
     });
 
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
     const newDashboard = {
       dashboard: {
         title: `${selectedService?.label} Metrics Dashboard`,
@@ -556,47 +494,8 @@ const getStyles = (theme: GrafanaTheme2) => ({
   childNodes: css`
     margin-left: ${theme.spacing(3)};
   `,
-<<<<<<< HEAD
-  createdGraphsContainer: css`
-    margin-top: ${theme.spacing(3)};
-  `,
-  graphDetail: css`
-    margin-bottom: ${theme.spacing(2)};
-    padding: ${theme.spacing(2)};
-    border: 1px solid ${theme.colors.border.weak};
-    border-radius: ${theme.shape.borderRadius()};
-    background-color: ${theme.colors.background.secondary};
-  `,
-  metricsContainer: css`
-    display: flex;
-    flex-wrap: wrap;
-    gap: ${theme.spacing(0.5)};
-    margin-top: ${theme.spacing(0.5)};
-  `,
-  metricBox: css`
-    display: flex;
-    align-items: center;
-    background-color: ${theme.colors.background.primary};
-    padding: ${theme.spacing(0)} ${theme.spacing(0.5)};
-    margin-right: ${theme.spacing(0.5)};
-    border-radius: ${theme.shape.borderRadius()};
-    font-size: 0.9em;
-  `,
-  removeMetricButton: css`
-    background: transparent;
-    border: none;
-    margin-left: ${theme.spacing(0.25)};
-    cursor: pointer;
-    font-weight: bold;
-    color: ${theme.colors.error.text};
-
-    &:hover {
-      color: ${theme.colors.error.border};
-    }
-=======
   visSelect: css`
     margin-left: ${theme.spacing(1)};
     width: 150px;
->>>>>>> e725c86bf88fae2356ccb7ad4ff0a741b3e01aaa
   `,
 });

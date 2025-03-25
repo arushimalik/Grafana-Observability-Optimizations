@@ -51,6 +51,14 @@
       "role": "Admin",
       "addToNav": true,
       "defaultNav": false
+    },
+    {
+      "type": "page",
+      "name": "Transformation Page",
+      "path": "/a/hmcclinic-skeleton-app/transform",
+      "role": "Admin",
+      "addToNav": true,
+      "defaultNav": false
     }
   ],
   "dependencies": {

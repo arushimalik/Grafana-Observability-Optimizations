@@ -5,7 +5,8 @@ export const PLUGIN_BASE_URL = `/a/${pluginJson.id}`;
 export enum ROUTES {
   Unused = 'unused',
   PageTwo = "pageTwo",
-  MultiCloud = 'multi'
+  MultiCloud = 'multi',
+  GraphTransform = 'transform'
 }
 
 export type Option = {
