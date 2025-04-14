@@ -6,6 +6,10 @@ import { PluginPage, getBackendSrv } from "@grafana/runtime";
 import { VscChevronDown, VscChevronRight } from "react-icons/vsc";
 import { fetchAvailableServices } from "../utils/page_utils";
 
+// ----------------------
+// Types & Interfaces
+// ----------------------
+
 type MetricNode = {
   name: string;
   fullPath: string;
@@ -21,11 +25,26 @@ const TimeSeriesGraphStyleOptions: GraphType[] = [
   { label: "Point", value: "points" },
 ];
 
+
 type Transformation = {
   label: string;
   value: string;
   global: boolean; // true means combine all metrics in one query
+  customQueryFunc?: (metrics: string[], constant?: number) => string; // optional custom function.
 };
+
+// ----------------------
+// Custom Transformation Functions
+// ----------------------
+
+// example custom function
+const derivativeAndMovingAverage = (metrics: string[]): string => {
+  return `movingAverage(derivative(sumSeries(${metrics.join(",")})),5)`;
+};
+
+// ----------------------
+// Transformation Options
+// ----------------------
 
 const transformationOptions: Transformation[] = [
   { label: "None", value: "none", global: false },
@@ -37,6 +56,8 @@ const transformationOptions: Transformation[] = [
   { label: "Moving Average", value: "movingAverage", global: false },
   { label: "Integral", value: "integral", global: false },
   { label: "Hitcount", value: "hitcount", global: false },
+  // example custom transformation
+  { label: "Derivative & Moving Average", value: "derivativeAndMovingAverage", global: true, customQueryFunc: derivativeAndMovingAverage },
 ];
 
 type AddedGraph = {
@@ -44,6 +65,10 @@ type AddedGraph = {
   graphType: GraphType;
   transformation: Transformation;
 };
+
+// ----------------------
+// DashboardAssistant component
+// ----------------------
 
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
@@ -67,9 +92,7 @@ function DashboardAssistant() {
   const [addingGraph, setAddingGraph] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [graphError, setGraphError] = useState<string | null>(null);
-  const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(
-    null
-  );
+  const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [editingGraphIndex, setEditingGraphIndex] = useState<number | null>(null);
 
@@ -236,7 +259,7 @@ function DashboardAssistant() {
 
     try {
       const selectedMetricsArray = [...selectedMetrics];
-      // If in edit mode, update curr graph instead of adding a new one
+      // If in edit mode, update current graph instead of adding a new one
       if (editingGraphIndex !== null) {
         setAddedGraphs((prevGraphs) =>
           prevGraphs.map((graph, index) =>
@@ -316,21 +339,29 @@ function DashboardAssistant() {
       let targets = [];
 
       if (graph.transformation && graph.transformation.value !== "none") {
-        if (graph.transformation.global) {
-          // combine all metrics into one query, ex. sumSeries(m1, m2, ...)
+        // If a custom function is provided, use that to produce the Graphite query.
+        if (graph.transformation.customQueryFunc) {
+          const targetQuery = graph.transformation.customQueryFunc(graph.metrics);
+          targets.push({
+            target: targetQuery,
+            refId: `A${index}0`,
+          });
+        } else if (graph.transformation.global) {
+          // Combine all metrics into one query, ex. sumSeries(m1, m2, ...)
           const targetQuery = `${graph.transformation.value}(${graph.metrics.join(",")})`;
           targets.push({
             target: targetQuery,
             refId: `A${index}0`,
           });
         } else {
-          // apply the transformation to EACH metric, ex. derivative(metric)
+          // Apply the transformation to each metric individually, ex. derivative(metric)
           targets = graph.metrics.map((metric, mIndex) => ({
             target: `${graph.transformation.value}(${metric})`,
             refId: `A${index}${mIndex}`,
           }));
         }
-      } else { // case for no transformation
+      } else {
+        // Case for no transformation; query each metric directly.
         targets = graph.metrics.map((metric, mIndex) => ({
           target: metric,
           refId: `A${index}${mIndex}`,
@@ -526,6 +557,9 @@ function DashboardAssistant() {
 
 export default DashboardAssistant;
 
+// ----------------------
+// Styling
+// ----------------------
 const getStyles = (theme: GrafanaTheme2) => ({
   marginTop: css`
     margin-top: ${theme.spacing(2)};
