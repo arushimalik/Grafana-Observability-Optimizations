@@ -6,6 +6,10 @@ import { PluginPage, getBackendSrv } from "@grafana/runtime";
 import { VscChevronDown, VscChevronRight } from "react-icons/vsc";
 import { fetchAvailableServices } from "../utils/page_utils";
 
+// ----------------------
+// Types & Interfaces
+// ----------------------
+
 type MetricNode = {
   name: string;
   fullPath: string;
@@ -21,19 +25,65 @@ const TimeSeriesGraphStyleOptions: GraphType[] = [
   { label: "Point", value: "points" },
 ];
 
+
+type Transformation = {
+  label: string;
+  value: string;
+  global: boolean; // true means combine all metrics in one query
+  customQueryFunc?: (metrics: string[], constant?: number) => string; // optional custom function.
+};
+
+// ----------------------
+// Custom Transformation Functions
+// ----------------------
+
+// example custom function
+const derivativeAndMovingAverage = (metrics: string[]): string => {
+  return `movingAverage(derivative(sumSeries(${metrics.join(",")})),5)`;
+};
+
+// ----------------------
+// Transformation Options
+// ----------------------
+
+const transformationOptions: Transformation[] = [
+  { label: "None", value: "none", global: false },
+  { label: "Sum", value: "sumSeries", global: true },
+  { label: "Average", value: "averageSeries", global: true },
+  { label: "Max", value: "maxSeries", global: true },
+  { label: "Min", value: "minSeries", global: true },
+  { label: "Derivative", value: "derivative", global: false },
+  { label: "Moving Average", value: "movingAverage", global: false },
+  { label: "Integral", value: "integral", global: false },
+  { label: "Hitcount", value: "hitcount", global: false },
+  // example custom transformation
+  { label: "Derivative & Moving Average", value: "derivativeAndMovingAverage", global: true, customQueryFunc: derivativeAndMovingAverage },
+];
+
+type AddedGraph = {
+  metrics: string[];
+  graphType: GraphType;
+  transformation: Transformation;
+};
+
+// ----------------------
+// DashboardAssistant component
+// ----------------------
+
 function DashboardAssistant() {
   const styles = useStyles2(getStyles);
 
   // State definitions
   const [selectedService, setSelectedService] = useState<GraphType | null>(null);
   const [availableServices, setAvailableServices] = useState<GraphType[]>([]);
-  const [addedGraphs, setAddedGraphs] = useState<
-    { metrics: string[]; graphType: GraphType }[]
-  >([]);
+  const [addedGraphs, setAddedGraphs] = useState<AddedGraph[]>([]);
   const [selectedGraphType, setSelectedGraphType] = useState<GraphType>({
     label: "Line",
     value: "line",
   });
+  const [selectedTransformation, setSelectedTransformation] = useState<Transformation>(
+    transformationOptions[0]
+  );
   const [metricsTree, setMetricsTree] = useState<MetricNode[]>([]);
   const [loadingServices, setLoadingServices] = useState(false);
   const [serviceError, setServiceError] = useState<string | null>(null);
@@ -42,9 +92,7 @@ function DashboardAssistant() {
   const [addingGraph, setAddingGraph] = useState(false);
   const [dashboardError, setDashboardError] = useState<string | null>(null);
   const [graphError, setGraphError] = useState<string | null>(null);
-  const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(
-    null
-  );
+  const [graphiteDatasourceUid, setGraphiteDatasourceUid] = useState<string | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [editingGraphIndex, setEditingGraphIndex] = useState<number | null>(null);
 
@@ -148,6 +196,33 @@ function DashboardAssistant() {
     });
   };
 
+  // Functions to expand or collapse all nodes
+  const getAllNodePaths = (nodes: MetricNode[]): string[] => {
+    let allPaths: string[] = [];
+    nodes.forEach((node) => {
+      if (!node.isLeaf) {
+        allPaths.push(node.fullPath);
+        allPaths = [...allPaths, ...getAllNodePaths(node.children)];
+      }
+    });
+    return allPaths;
+  };
+
+  const expandAllNodes = () => {
+    const allPaths = getAllNodePaths(metricsTree);
+    setExpandedNodes(new Set(allPaths));
+  };
+
+  const collapseAllNodes = () => {
+    setExpandedNodes(new Set());
+  };
+
+  // Determine if all nodes are expanded
+  const areAllNodesExpanded = () => {
+    const allPaths = getAllNodePaths(metricsTree);
+    return allPaths.length > 0 && allPaths.every((path) => expandedNodes.has(path));
+  };
+
   const renderTree = (nodes: MetricNode[]): JSX.Element[] =>
     nodes.map((node) => (
       <div key={node.fullPath} className={styles.treeNode}>
@@ -173,7 +248,9 @@ function DashboardAssistant() {
   // Graph addition and removal logic
   const addGraph = async () => {
     if (selectedMetrics.size === 0 || !graphiteDatasourceUid) {
-      setDashboardError("Please select at least one metric and ensure the datasource is available.");
+      setDashboardError(
+        "Please select at least one metric and ensure the datasource is available."
+      );
       return;
     }
 
@@ -182,12 +259,17 @@ function DashboardAssistant() {
 
     try {
       const selectedMetricsArray = [...selectedMetrics];
-      // If in edit mode, update the graph instead of adding a new one
+      // If in edit mode, update current graph instead of adding a new one
       if (editingGraphIndex !== null) {
         setAddedGraphs((prevGraphs) =>
           prevGraphs.map((graph, index) =>
             index === editingGraphIndex
-              ? { ...graph, metrics: selectedMetricsArray, graphType: selectedGraphType }
+              ? {
+                  ...graph,
+                  metrics: selectedMetricsArray,
+                  graphType: selectedGraphType,
+                  transformation: selectedTransformation,
+                }
               : graph
           )
         );
@@ -195,7 +277,11 @@ function DashboardAssistant() {
         setEditingGraphIndex(null);
       } else {
         setAddedGraphs((prevGraphs) => [
-          { metrics: selectedMetricsArray, graphType: selectedGraphType },
+          {
+            metrics: selectedMetricsArray,
+            graphType: selectedGraphType,
+            transformation: selectedTransformation,
+          },
           ...prevGraphs,
         ]);
       }
@@ -228,38 +314,72 @@ function DashboardAssistant() {
     }
   };
 
-  // Handle edit: pre-load the graph's metrics and type into the selectors and set edit mode
+  // Handle edit: pre-load the graph's metrics, graph type, and transformation into the selectors
   const editGraph = (graphIndex: number) => {
     const graph = addedGraphs[graphIndex];
     setSelectedMetrics(new Set(graph.metrics));
     setSelectedGraphType(graph.graphType);
+    setSelectedTransformation(graph.transformation);
     setEditingGraphIndex(graphIndex);
   };
 
   // Dashboard creation logic
   const createDashboard = async () => {
     if (addedGraphs.length === 0 || !graphiteDatasourceUid) {
-      setDashboardError("Please add at least one graph and ensure the datasource is available.");
+      setDashboardError(
+        "Please add at least one graph and ensure the datasource is available."
+      );
       return;
     }
 
     setCreatingDashboard(true);
     setDashboardError(null);
 
-    const panels = addedGraphs.map((graph, index) => ({
-      title: `Graph ${index + 1}`,
-      type: "timeseries",
-      datasource: { type: "graphite", uid: graphiteDatasourceUid },
-      targets: graph.metrics.map((metric) => ({
-        target: metric,
-        refId: `A${index}${metric}`,
-      })),
-      id: index + 1,
-      gridPos: { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 },
-      fieldConfig: {
-        defaults: { custom: { drawStyle: graph.graphType.value } },
-      },
-    }));
+    const panels = addedGraphs.map((graph, index) => {
+      let targets = [];
+
+      if (graph.transformation && graph.transformation.value !== "none") {
+        // If a custom function is provided, use that to produce the Graphite query.
+        if (graph.transformation.customQueryFunc) {
+          const targetQuery = graph.transformation.customQueryFunc(graph.metrics);
+          targets.push({
+            target: targetQuery,
+            refId: `A${index}0`,
+          });
+        } else if (graph.transformation.global) {
+          // Combine all metrics into one query, ex. sumSeries(m1, m2, ...)
+          const targetQuery = `${graph.transformation.value}(${graph.metrics.join(",")})`;
+          targets.push({
+            target: targetQuery,
+            refId: `A${index}0`,
+          });
+        } else {
+          // Apply the transformation to each metric individually, ex. derivative(metric)
+          targets = graph.metrics.map((metric, mIndex) => ({
+            target: `${graph.transformation.value}(${metric})`,
+            refId: `A${index}${mIndex}`,
+          }));
+        }
+      } else {
+        // Case for no transformation; query each metric directly.
+        targets = graph.metrics.map((metric, mIndex) => ({
+          target: metric,
+          refId: `A${index}${mIndex}`,
+        }));
+      }
+
+      return {
+        title: `Graph ${index + 1}`,
+        type: "timeseries",
+        datasource: { type: "graphite", uid: graphiteDatasourceUid },
+        targets,
+        id: index + 1,
+        gridPos: { h: 8, w: 12, x: (index % 2) * 12, y: Math.floor(index / 2) * 8 },
+        fieldConfig: {
+          defaults: { custom: { drawStyle: graph.graphType.value } },
+        },
+      };
+    });
 
     const newDashboard = {
       dashboard: {
@@ -310,6 +430,17 @@ function DashboardAssistant() {
         {/* Metrics Tree */}
         {metricsTree.length > 0 && (
           <div className={styles.marginTop}>
+            {/* Expand/Collapse All Button */}
+            <div className={styles.expandCollapseContainer}>
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={areAllNodesExpanded() ? collapseAllNodes : expandAllNodes}
+                className={styles.expandCollapseButton}
+              >
+                {areAllNodesExpanded() ? "Collapse All" : "Expand All"}
+              </Button>
+            </div>
             <div>{renderTree(metricsTree)}</div>
           </div>
         )}
@@ -324,6 +455,17 @@ function DashboardAssistant() {
             placeholder="Select Graph Type"
           />
           {serviceError && <div className={styles.error}>{serviceError}</div>}
+        </div>
+
+        {/* Data Transformation Dropdown */}
+        <div className={styles.marginTop}>
+          <h4>Select Data Transformation:</h4>
+          <Select
+            options={transformationOptions}
+            value={selectedTransformation}
+            onChange={(option: any) => setSelectedTransformation(option)}
+            placeholder="Select Transformation"
+          />
         </div>
 
         {/* Graph Creation / Save Edit Buttons */}
@@ -360,7 +502,11 @@ function DashboardAssistant() {
               <div key={graphIndex} className={styles.graphDetail}>
                 <div className={styles.graphHeader}>
                   <h5>
-                    Graph {graphIndex + 1}: Type {graph.graphType.label}
+                    Graph {graphIndex + 1}: Type {graph.graphType.label}{" "}
+                    {graph.transformation &&
+                      graph.transformation.value !== "none" && (
+                        <>| Transformation: {graph.transformation.label}</>
+                      )}
                   </h5>
                   <div className={styles.graphActions}>
                     <Button
@@ -411,6 +557,9 @@ function DashboardAssistant() {
 
 export default DashboardAssistant;
 
+// ----------------------
+// Styling
+// ----------------------
 const getStyles = (theme: GrafanaTheme2) => ({
   marginTop: css`
     margin-top: ${theme.spacing(2)};
@@ -482,12 +631,10 @@ const getStyles = (theme: GrafanaTheme2) => ({
     gap: ${theme.spacing(1)};
     margin-top: ${theme.spacing(1)};
   `,
-  // Base container for the selectors
   selectorContainer: css`
     padding: ${theme.spacing(2)};
     transition: background-color 0.3s ease;
   `,
-  // Additional background when in edit mode
   editModeContainer: css`
     background-color: rgba(0, 123, 255, 0.3);
   `,
@@ -502,5 +649,11 @@ const getStyles = (theme: GrafanaTheme2) => ({
     &:hover {
       color: ${theme.colors.error.border};
     }
+  `,
+  expandCollapseContainer: css`
+    margin-bottom: ${theme.spacing(1)};
+  `,
+  expandCollapseButton: css`
+    margin-left: 0;
   `,
 });
