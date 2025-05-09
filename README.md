@@ -22,7 +22,7 @@ This happens sometimes when there are outdated packages that npm install is tryi
 
 ** If that doesn't work, try this: **
 
-This issue is coming from the fact that your build script for some reason cannot find the auto-generated webpack config file in the .config directory. Even changing the directory to this config file doesn't work (at least not for me). 
+This issue might be coming from the fact that your build script for some reason cannot find the auto-generated webpack config file in the .config directory. Even changing the directory to this config file doesn't work (at least not for me). 
 
 Explicitly create a webpack config somewhere in your code, similar to `webpack.config.js` that exists in this repository <a src="webpack.config.js">Here</a>. 
 
