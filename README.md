@@ -1,3 +1,47 @@
+## Troubleshooting
+
+In our team's experience, development on anything except for MacOS is extremely difficult. Our team was able to get non-Mac development to work, but still ran into critical issues involving auto-generated files. Even despite having all of our code encapsulated in Docker containers, this problem seemed unavoidable for us. 
+
+### Issues when running `npm install`
+
+> "X severe severity vulnerabilities and X moderate severity vulnerabilities"
+
+Run `npm audit fix`. This should remove package conflicts and update them to be the latest packages.
+
+### Issues when running `npm run dev`
+
+> Failed to load '/Users/.../Grafana-Observability-Optimizations/.config/webpack/webpack.config.ts' config
+> [webpack-cli] Error [ERR_MODULE_NOT_FOUND]: Cannot find module
+
+** First try this: **
+Delete `node_modules` directory.
+Delete `package-lock.json` file.
+Run `npm install` again
+
+This happens sometimes when there are outdated packages that npm install is trying to make work. It's best to delete, reinstall, and rebuild.
+
+** If that doesn't work, try this: **
+
+This issue might be coming from the fact that your build script for some reason cannot find the auto-generated webpack config file in the .config directory. Even changing the directory to this config file doesn't work (at least not for me). 
+
+Explicitly create a webpack config somewhere in your code, similar to `webpack.config.js` that exists in this repository <a src="webpack.config.js">Here</a>. 
+
+Navigate to the scripts section of `package.json`. Under `build` and `dev` scripts, change the `webpack` commands to reference your new config file <a src="https://github.com/hwalters361/Grafana-Multicloud-Datasource-Plugin/commit/a213cfd024faaa90ae2df99f634f1d3cdb026657"> Like here</a>. 
+
+These are the two most frequently occuring errors we have experienced. Hopefully, this same formula can apply to other package dependency errors you will run into in the future (if a module isn't found, change the scripting commands to directly reference it, deleting node modules and package-lock and rebuilding).
+
+### Issues when running `docker compose up`
+
+> error: ✗ app provisioning error: plugin not installed: "test-org-app"
+
+This error can occur if you try to run the plugin without building the backend first.
+
+Install <a src="https://magefile.org/">mage</a> on your system.
+
+Run `mage -v` to build the backend. 
+
+Then try running `docker-compose up` again.
+
 # Grafana app plugin template
 
 This template is a starting point for building an app plugin for Grafana.
